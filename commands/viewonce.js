@@ -1,0 +1,99 @@
+'use strict';
+const { downloadContentFromMessage, jidNormalizedUser } = require('@whiskeysockets/baileys');
+const { channelInfo } = require('../lib/messageConfig');
+
+/**
+ * vvCommand — ouvre un média vue-unique
+ * @param {boolean} sendToPv
+ *   false (défaut) → renvoie dans la discussion actuelle (.vv)
+ *   true           → envoie au PV du compte qui a connecté le bot (.vv2)
+ */
+async function vvCommand(sock, chatId, message, sendToPv = false) {
+    // Chercher le message cité (vue-unique ou normal)
+    const ctx    = message.message?.extendedTextMessage?.contextInfo;
+    const quoted = ctx?.quotedMessage;
+    const senderJid = message.key.participant || message.key.remoteJid;
+    const quotedSenderJid = ctx?.participant || ctx?.remoteJid || senderJid;
+    // vv2 always opens in the private chat of the WhatsApp account that
+    // connected the bot, even when the command was run from a group.
+    const connectedAccountJid = sock.user?.id ? jidNormalizedUser(sock.user.id) : null;
+    const targetJid = sendToPv ? (connectedAccountJid || senderJid) : chatId;
+
+    const quotedImage =
+        quoted?.imageMessage ||
+        quoted?.viewOnceMessage?.message?.imageMessage ||
+        quoted?.viewOnceMessageV2?.message?.imageMessage ||
+        quoted?.viewOnceMessageV2Extension?.message?.imageMessage;
+
+    const quotedVideo =
+        quoted?.videoMessage ||
+        quoted?.viewOnceMessage?.message?.videoMessage ||
+        quoted?.viewOnceMessageV2?.message?.videoMessage ||
+        quoted?.viewOnceMessageV2Extension?.message?.videoMessage;
+
+    if (!quotedImage && !quotedVideo) {
+        await sock.sendMessage(chatId, {
+            text:
+                `╭━━━━⌜𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗⌟\n` +
+                `┃⌬╭━━━━━━━━━━━━━≽\n` +
+                `┃⌬┃ ❌ Réponds à un média\n` +
+                `┃⌬┃ vue-unique (image/vidéo).\n` +
+                `╰━━━━━━━━━━━━❍\n` +
+                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+            ...channelInfo
+        }, { quoted: message });
+        return;
+    }
+
+    try {
+        const senderNum = (quotedSenderJid || senderJid || '').split('@')[0];
+        const location  = chatId.endsWith('@g.us') ? chatId : 'Privé';
+
+        const caption =
+            `╭━━━━⌜𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗⌟\n` +
+            `┃⌬╭━━━━━━━━━━━━━≽\n` +
+            `┃⌬┃ 📩 *Vue unique reçue*\n` +
+            `╰━━━━━━━━━━━━❍\n` +
+            `┃⌬┃ 👤 De : @${senderNum}\n` +
+            `┃⌬┃ 💬 Groupe : ${location}\n` +
+            `╰━━━━━━━━━━━━❍\n` +
+            `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`;
+
+        if (quotedImage) {
+            const stream = await downloadContentFromMessage(quotedImage, 'image');
+            let buffer = Buffer.from([]);
+            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+            await sock.sendMessage(targetJid, { image: buffer, caption, ...channelInfo });
+        } else {
+            const stream = await downloadContentFromMessage(quotedVideo, 'video');
+            let buffer = Buffer.from([]);
+            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+            await sock.sendMessage(targetJid, { video: buffer, caption, ...channelInfo });
+        }
+
+        // Confirmer dans le chat source si vv2
+        if (sendToPv && targetJid !== chatId) {
+            await sock.sendMessage(chatId, {
+                text:
+                    `╭━━━━⌜𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗⌟\n` +
+                    `┃⌬┃ ✅ Média transmis en privé, Monsieur.\n` +
+                    `┃⌬┃ Consulte tes messages privés.\n` +
+                    `╰━━━━━━━━━━━━❍`,
+                ...channelInfo
+            }, { quoted: message });
+        }
+
+    } catch (error) {
+        console.error('[vv/vv2] error:', error.message);
+        await sock.sendMessage(chatId, {
+            text:
+                `╭━━━━⌜𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗⌟\n` +
+                `┃⌬┃ ❌ Impossible de récupérer\n` +
+                `┃⌬┃ le média.\n` +
+                `╰━━━━━━━━━━━━❍`,
+            ...channelInfo
+        }, { quoted: message });
+    }
+}
+
+module.exports = vvCommand;
