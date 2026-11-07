@@ -116,4 +116,29 @@ async function demoteCommand(sock, chatId, mentionedJids, message) {
     }
 }
 
+// Annonce automatique quand quelqu'un est rétrogradé (événement WhatsApp).
+async function handleDemotionEvent(sock, groupId, participants, author) {
+    try {
+        if (!Array.isArray(participants) || !participants.length) return;
+        const jids = participants.map(p => typeof p === 'string' ? p : (p.id || String(p)));
+        const mentions = [...jids];
+        let by = 'Système';
+        if (author) {
+            const a = typeof author === 'string' ? author : (author.id || String(author));
+            by = `@${a.split('@')[0].split(':')[0]}`;
+            mentions.push(a);
+        }
+        await sock.sendMessage(groupId, {
+            text: '*『 RÉTROGRADATION 』*\n\n👤 *Membre(s) rétrogradé(s) :*\n' +
+                jids.map(j => `• @${j.split('@')[0].split(':')[0]}`).join('\n') +
+                `\n\n👑 *Rétrogradé par :* ${by}\n\n📅 *Date :* ${new Date().toLocaleString('fr-FR', { timeZone: 'Africa/Kinshasa' })}`,
+            mentions
+        });
+    } catch (error) {
+        console.error('Error handling demotion event:', error);
+    }
+}
+
 module.exports = demoteCommand;
+module.exports.demoteCommand = demoteCommand;
+module.exports.handleDemotionEvent = handleDemotionEvent;

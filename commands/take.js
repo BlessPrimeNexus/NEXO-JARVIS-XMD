@@ -69,7 +69,7 @@ async function takeCommand(sock, chatId, message, args) {
 
         } catch (error) {
             console.error('Sticker processing error:', error);
-            await sock.sendMessage(chatId, { text: '❌ Error processing sticker' });
+            await sock.sendMessage(chatId, { text: '❌ Impossible de traiter ce sticker, Monsieur.' });
         }
 
     } catch (error) {

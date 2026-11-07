@@ -13,19 +13,20 @@ const ANTICALL_PATH = './data/anticall.json';
 
 function readState() {
     try {
-        if (!fs.existsSync(ANTICALL_PATH)) return { activé: false };
+        if (!fs.existsSync(ANTICALL_PATH)) return { activé: false, enabled: false };
         const raw = fs.readFileSync(ANTICALL_PATH, 'utf8');
         const data = JSON.parse(raw || '{}');
-        return { activé: !!data.activé };
+        const on = !!(data.activé ?? data.enabled);
+        return { activé: on, enabled: on };   // les deux clés : anciens fichiers et lecteurs externes
     } catch {
-        return { activé: false };
+        return { activé: false, enabled: false };
     }
 }
 
 function writeState(activé) {
     try {
         if (!fs.existsSync('./data')) fs.mkdirSync('./data', { recursive: true });
-        fs.writeFileSync(ANTICALL_PATH, JSON.stringify({ activé: !!activé }, null, 2));
+        fs.writeFileSync(ANTICALL_PATH, JSON.stringify({ activé: !!activé, enabled: !!activé }, null, 2));
     } catch {}
 }
 

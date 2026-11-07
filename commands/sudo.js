@@ -19,7 +19,7 @@ function extractMentionedJid(message) {
 
 async function sudoCommand(sock, chatId, message) {
     const senderJid = message.key.participant || message.key.remoteJid;
-    const isOwner = message.key.fromMe || await isOwnerOrSudo(senderJid, sock, chatId);
+    const isOwner = await require('../lib/ownerAuth').isOwnerMessage(sock, message, chatId);   // gestion des sudo : propriétaire uniquement
 
     const rawText = message.message?.conversation || message.message?.extendedTextMessage?.text || '';
     const args = rawText.trim().split(/\s+/).slice(1);

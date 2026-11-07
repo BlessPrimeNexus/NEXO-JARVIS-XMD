@@ -1,4 +1,5 @@
 'use strict';
+process.env.NEXO_FANCY_FONT = '0';   // les tests lisent le texte en lettres normales (la police monospace est testée à part)
 
 const fs = require('node:fs');
 const os = require('node:os');
@@ -11,6 +12,7 @@ process.env.SESSION_DIR = sessionDir;
 
 const fakeReactCommand = require('../commands/fakeract');
 const channelJid = '120363426264191950@newsletter';
+require('../lib/channel')._reset({ jid: channelJid }); // la chaîne officielle est dynamique
 
 function mockSocket(number) {
    const calls = { follow: [], liveUpdates: [], sent: [], reactions: 0, reactionRequests: [] };

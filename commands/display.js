@@ -3,38 +3,54 @@
 const displayFlags = require('../lib/displayFlags');
 
 const MENU_STYLES = {
-    mixte: 'mixte', boutons: 'mixte', bouton: 'mixte', buttons: 'mixte',
-    complet: 'complet', full: 'complet',
+    complet: 'complet', full: 'complet', boutons: 'complet', bouton: 'complet', buttons: 'complet', mixte: 'complet',
     texte: 'texte', text: 'texte'
 };
 const MENU_LABELS = {
-    mixte: 'menu *mixte* (texte visible partout + barre de boutons)',
-    complet: 'menu *complet* (un seul message à boutons)',
-    texte: 'menu en *texte* seul'
+    complet: 'menu *complet* (un seul message : menu + boutons)',
+    texte: 'menu en *texte* seul (un seul message, sans boutons)'
 };
-const CARD_ON = ['on', 'oui', 'actif', 'active', 'activer'];
-const CARD_OFF = ['off', 'non', 'inactif', 'desactive', 'désactive', 'desactiver', 'désactiver'];
+const ON = ['on', 'oui', 'actif', 'active', 'activer', 'activé'];
+const OFF = ['off', 'non', 'inactif', 'desactive', 'désactive', 'desactiver', 'désactiver', 'désactivé'];
 const CARD_STYLES = { universal: 'universal', universelle: 'universal', business: 'business', commande: 'business' };
 
-// .menustyle [mixte|complet|texte]   et   .quotecard [on|off|universal|business]   (propriétaire uniquement)
+// .menustyle [complet|texte]   .quotecard [on|off|universal|business]   .preview [on|off]   (propriétaire uniquement)
 async function displayCommand(sock, chatId, message, flag, argument, allowed) {
     const reply = (text) => sock.sendMessage(chatId, { text }, { quoted: message });
-    if (!allowed) return reply('Accès réservé au propriétaire du système, Monsieur.');
+    if (!allowed) return reply('⛔ Accès réservé au propriétaire du système, Monsieur.');
 
     const word = String(argument || '').trim().toLowerCase();
 
     if (flag === 'menuStyle') {
-        const current = displayFlags.getValue('menuStyle') || 'mixte';
+        const current = MENU_STYLES[displayFlags.getValue('menuStyle')] || 'complet';
         if (!word) {
-            return reply(`ℹ️ Réglage actuel : ${MENU_LABELS[current] || current}.\nUtilisez *.menustyle mixte*, *.menustyle complet* ou *.menustyle texte*.`);
+            return reply(`ℹ️ Réglage actuel : ${MENU_LABELS[current]}.\nUtilisez *.menustyle complet* ou *.menustyle texte*.`);
         }
         const style = MENU_STYLES[word];
-        if (!style) return reply('❌ Option invalide. Utilisez *.menustyle mixte*, *.menustyle complet* ou *.menustyle texte*.');
+        if (!style) return reply('❌ Option invalide. Utilisez *.menustyle complet* ou *.menustyle texte*.');
         displayFlags.setValue('menuStyle', style);
         const advice = style === 'complet'
-            ? '\n⚠️ Un téléphone qui ne gère pas les messages à boutons ne verra pas le menu : vérifiez avec .viewtest.'
+            ? '\n⚠️ Un téléphone qui ne gère pas les messages à boutons ne verra pas le menu : vérifiez avec .viewtest, ou passez à *.menustyle texte*.'
             : '';
         return reply(`✅ Réglage enregistré : ${MENU_LABELS[style]}, Monsieur.${advice}`);
+    }
+
+    const TOGGLES = {
+        previewImage: { cmd: '.preview', label: "Aperçu de lien (externalAdReply)", note: '\n⚠️ Cet aperçu rend les messages INVISIBLES chez certains téléphones (voir .viewtest, test 3). Déconseillé.' },
+        imageReply: { cmd: '.imagemode', label: 'Vraie image avec chaque réponse', note: '\n⚠️ Les photos peuvent s\'enregistrer dans la galerie des membres (téléchargement automatique de WhatsApp).' },
+        replyFrame: { cmd: '.replystyle', label: 'Cadre automatique des réponses', note: '' }
+    };
+    if (TOGGLES[flag]) {
+        const { cmd, label, note } = TOGGLES[flag];
+        const enabled = displayFlags.get(flag);
+        if (!word) {
+            return reply(`ℹ️ ${label} : *${enabled ? 'activé' : 'désactivé'}*.\nUtilisez *${cmd} on* ou *${cmd} off*.`);
+        }
+        if (ON.includes(word)) displayFlags.set(flag, true);
+        else if (OFF.includes(word)) displayFlags.set(flag, false);
+        else return reply(`❌ Option invalide. Utilisez *${cmd} on* ou *${cmd} off*.`);
+        const now = displayFlags.get(flag);
+        return reply(`✅ ${label} : *${now ? 'activé' : 'désactivé'}*, Monsieur.${now ? note : ''}`);
     }
 
     // quoteCard
@@ -44,9 +60,9 @@ async function displayCommand(sock, chatId, message, flag, argument, allowed) {
     if (!word) {
         return reply(`ℹ️ Réglage actuel : ${describe()}.\nUtilisez *.quotecard on*, *.quotecard off*, *.quotecard universal* ou *.quotecard business*.`);
     }
-    if (CARD_ON.includes(word)) {
+    if (ON.includes(word)) {
         displayFlags.set('quoteCard', true);
-    } else if (CARD_OFF.includes(word)) {
+    } else if (OFF.includes(word)) {
         displayFlags.set('quoteCard', false);
     } else if (CARD_STYLES[word]) {
         displayFlags.set('quoteCard', true);

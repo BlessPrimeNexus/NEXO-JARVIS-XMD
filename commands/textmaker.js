@@ -6,7 +6,7 @@ const channelInfo = {
     forwardingScore: 1,
     isForwarded: true,
     forwardedNewsletterMessageInfo: {
-        newsletterJid: '120363426264191950@newsletter',
+        newsletterJid: (require('../lib/channel').jid() || undefined),
         newsletterName: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
         serverMessageId: -1
     }

@@ -31,9 +31,9 @@ function writeState(activé, message) {
 
 async function pmblockerCommand(sock, chatId, message, args) {
     const senderId = message.key.participant || message.key.remoteJid;
-    const isOwner = await isOwnerOrSudo(senderId, sock, chatId);
+    const isOwner = await require('../lib/ownerAuth').isOwnerOrSudoMessage(sock, message, chatId);
     
-    if (!message.key.fromMe && !isOwner) {
+    if (!isOwner) {
         await sock.sendMessage(chatId, { text: 'Seul le propriétaire du bot peut utiliser cette commande !' }, { quoted: message });
         return;
     }

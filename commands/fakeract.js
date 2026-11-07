@@ -10,10 +10,10 @@ const AUTOJOIN_STATE_DIR = path.join(SESSION_DIR, 'channel-autojoin');
 const REACTION_STATE_DIR = path.join(SESSION_DIR, 'channel-reactions');
 const CHANNEL_LINK = new RegExp('^(?:https?://)?(?:www[.]?)?whatsapp[.]com/channel/([^/?# ]+)(?:/([0-9]+))?(?:[/?#].*)?$', 'i');
 const REACTIONS = ['❤️', '👍', '🔥', '😂', '😮', '👏', '🎉', '💯', '😍', '🤯', '🙏', '✨'];
-const PRIMARY_CHANNEL_JID = '120363426264191950@newsletter';
-if (process.env.PRIMARY_CHANNEL_JID && process.env.PRIMARY_CHANNEL_JID !== PRIMARY_CHANNEL_JID) {
-   console.warn('[auto-join] ignoring PRIMARY_CHANNEL_JID override; official channel is ' + PRIMARY_CHANNEL_JID);
-}
+const channel = require('../lib/channel');
+// Chaîne officielle : lien dans settings.js / lib/channel.js, JID résolu automatiquement à la connexion
+// (ou forcé avec la variable d'environnement CHANNEL_JID).
+const primaryJid = () => channel.jid();
 const pendingNotifications = new Set();
 const pendingReactions = new Set();
 const autoJoinTasks = new WeakMap();
@@ -113,23 +113,33 @@ async function ensurePrimaryChannelFollow(sock) {
    const task = Promise.resolve().then(async () => {
    if (!accountNumber(sock)) throw new Error('Compte WhatsApp connecté introuvable');
    const state = readAccountState(sock, AUTOJOIN_STATE_DIR, 'auto-join');
-   if (state.channelJid === PRIMARY_CHANNEL_JID && state.requestAcceptedAt) {
-       return { status: 'already-acknowledged', channelJid: PRIMARY_CHANNEL_JID };
+   if (state.channelJid === primaryJid() && state.requestAcceptedAt) {
+       return { status: 'already-acknowledged', channelJid: primaryJid() };
    }
    if (typeof sock.newsletterFollow !== 'function') {
        throw new Error('newsletterFollow n’est pas disponible dans cette version de Baileys');
    }
+   // Le JID de la chaîne doit être connu AVANT de suivre (sinon on suivrait « undefined »).
+   await channel.resolve(sock, { force: true });
+   if (!channel.isReady()) throw new Error('JID de la chaîne officielle pas encore résolu');
 
-   await sock.newsletterFollow(PRIMARY_CHANNEL_JID);
+   try {
+       await sock.newsletterFollow(primaryJid());
+   } catch (error) {
+       // Déjà abonné : WhatsApp répond par une erreur de conflit, c'est un succès pour nous.
+       if (!/already|conflict|subscribed|follow(ed|ing)|409/i.test(String(error?.message || error?.data || ''))) throw error;
+   }
    writeAccountState(sock, AUTOJOIN_STATE_DIR, {
-       channelJid: PRIMARY_CHANNEL_JID,
+       channelJid: primaryJid(),
        requestAcceptedAt: Date.now(),
    });
    console.info('[auto-join] WhatsApp acknowledged follow request account=' +
-       maskedAccount(sock) + ' channel=' + PRIMARY_CHANNEL_JID);
-   return { status: 'acknowledged', channelJid: PRIMARY_CHANNEL_JID };
+       maskedAccount(sock) + ' channel=' + primaryJid());
+   return { status: 'acknowledged', channelJid: primaryJid() };
    });
    autoJoinTasks.set(sock, task);
+   // Un échec ne doit pas être mémorisé : la tentative suivante doit pouvoir réessayer.
+   task.catch(() => { if (autoJoinTasks.get(sock) === task) autoJoinTasks.delete(sock); });
    return task;
 }
 
@@ -158,7 +168,7 @@ function restorePrimaryChannelUpdates(sock) {
    if (existingTask) return existingTask;
 
    const generation = primaryUpdateGenerations.get(sock) || 0;
-   const task = requestLiveUpdates(sock, PRIMARY_CHANNEL_JID)
+   const task = requestLiveUpdates(sock, primaryJid())
        .then(result => {
            if ((primaryUpdateGenerations.get(sock) || 0) !== generation) return result;
            schedulePrimaryUpdatesRenewal(sock, result.duration);
@@ -181,6 +191,8 @@ function stopPrimaryChannelUpdates(sock) {
 }
 
 async function restorePrimaryChannel(sock) {
+   await channel.resolve(sock);
+   if (!channel.isReady()) throw new Error('JID de la chaîne officielle pas encore résolu');
    const follow = await ensurePrimaryChannelFollow(sock);
    const updates = await restorePrimaryChannelUpdates(sock);
    return { follow, updates };
@@ -192,7 +204,7 @@ async function restoreChannelAlerts(sock) {
    state.liveUpdatesState = 'pending';
    writeState(sock, state);
    try {
-   if (state.channelJid === PRIMARY_CHANNEL_JID) {
+   if (state.channelJid === primaryJid()) {
        await restorePrimaryChannelUpdates(sock);
    } else {
        await requestLiveUpdates(sock, state.channelJid);
@@ -263,7 +275,7 @@ async function fakeReactCommand(sock, _chatId, _message, rawArgs = '') {
        throw new Error('Le suivi des chaînes n’est pas pris en charge par cette version de Baileys');
    }
 
-   if (newsletterJid === PRIMARY_CHANNEL_JID) {
+   if (newsletterJid === primaryJid()) {
        await ensurePrimaryChannelFollow(sock);
    } else {
        await sock.newsletterFollow(newsletterJid);
@@ -279,7 +291,7 @@ async function fakeReactCommand(sock, _chatId, _message, rawArgs = '') {
    writeState(sock, nextState);
 
    try {
-       if (newsletterJid === PRIMARY_CHANNEL_JID) {
+       if (newsletterJid === primaryJid()) {
            await restorePrimaryChannelUpdates(sock);
        } else {
            await requestLiveUpdates(sock, newsletterJid);
@@ -353,7 +365,7 @@ async function handleChannelPost(sock, message) {
 
 async function reactToPrimaryChannelPost(sock, message) {
    const channelJid = message?.key?.remoteJid;
-   if (channelJid !== PRIMARY_CHANNEL_JID) return false;
+   if (channelJid !== primaryJid()) return false;
 
    // Baileys rc14 sets key.server_id from the newsletter stanza. Its legacy
    // newsletter-notification path puts the same message_id in key.id instead.
@@ -438,7 +450,7 @@ async function handleChannelMessages(sock, messages, upsertType) {
    const channelJid = message.key.remoteJid;
    const messageId = String(message.key.serverMessageId || message.key.id || 'unknown');
    const state = readState(sock);
-   if (channelJid === PRIMARY_CHANNEL_JID || (state.enabled && state.channelJid === channelJid)) {
+   if (channelJid === primaryJid() || (state.enabled && state.channelJid === channelJid)) {
        console.info('[channel-alert] newsletter post received account=' + maskedAccount(sock) +
            ' channel=' + channelJid + ' post=' + messageId + ' upsert=' + String(upsertType || 'unknown'));
    }

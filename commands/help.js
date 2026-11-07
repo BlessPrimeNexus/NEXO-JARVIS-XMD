@@ -1,159 +1,192 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
+/*
+ * Menu NEXO-JARVIS XMD — UN SEUL message (menu + boutons + bouton chaîne).
+ * Le catalogue ci-dessous ne liste que des commandes réellement branchées dans main.js :
+ * test/menu-routes.test.js le vérifie, donc le menu ne peut plus annoncer une commande fantôme.
+ *
+ * Réglage : .menustyle complet (défaut : menu + boutons dans le même message) | texte (sans boutons)
+ */
+
+const os = require('os');
 const settings = require('../settings');
+const channel = require('../lib/channel');
+const displayFlags = require('../lib/displayFlags');
 const { getPrefix } = require('../lib/prefix');
+const style = require('../lib/style');
 
-const channelInfo = {
-  contextInfo: {
-    forwardingScore: 1,
-    isForwarded: true,
-    forwardedNewsletterMessageInfo: {
-      newsletterJid: '120363426264191950@newsletter',
-      newsletterName: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
-      serverMessageId: -1
-    }
-  }
-};
+/* ─── Catalogue ─────────────────────────────────────────────── */
 
-// These are the commands exposed by the current NEXO-JARVIS command router.
-// Keeping them here makes the menu searchable without changing command behavior.
-const categories = [
+const MENUS = [
   {
-    key: 'confidentialite',
-    title: 'ᴄᴏɴғɪᴅᴇɴᴛɪᴀʟɪᴛé',
-    icon: '🔐',
-    aliases: ['privacy', 'securite'],
-    commands: ['antidelete', 'pmblocker', 'anticall', 'antibot', 'antilink']
+    key: 'ai', icon: '🤖', label: 'IA', title: 'MENU IA',
+    aliases: ['ia', 'intelligence', 'gpt'],
+    commands: ['ai', 'gpt', 'gemini', 'chatbot']
   },
   {
-    key: 'conversion',
-    title: 'ᴄᴏɴᴠᴇʀsɪᴏɴ',
-    icon: '🔄',
-    commands: ['sticker', 'simage', 'stickertelegram', 'emojimix', 'translate', 'tts', 'attp']
+    key: 'aiImage', icon: '🎨', label: 'IA IMAGE', title: 'MENU IA IMAGE',
+    aliases: ['aiimage', 'imageia', 'iaimage', 'imagia'],
+    commands: ['imagine', 'flux', 'dalle', 'sora', 'remini', 'removebg']
   },
   {
-    key: 'fun',
-    title: 'ғᴜɴ',
-    icon: '🎭',
-    commands: ['joke', 'quote', 'fact', 'compliment', 'insult', 'flirt', 'truth', 'dare', 'ship', 'character']
+    key: 'download', icon: '📥', label: 'TÉLÉCHARGEMENT', title: 'MENU TÉLÉCHARGEMENT',
+    aliases: ['downloads', 'telechargement', 'téléchargement', 'telechargements', 'dl'],
+    commands: ['play', 'song', 'mp3', 'ytmp3', 'video', 'ytmp4', 'spotify', 'tiktok', 'instagram', 'igs', 'facebook', 'tourl']
   },
   {
-    key: 'fx_audio',
-    title: 'ғx_ᴀᴜᴅɪᴏ',
-    icon: '🎧',
-    aliases: ['audio', 'music'],
-    commands: ['play', 'song', 'spotify', 'lyrics', 'tts', 'attp', 'wasted']
+    key: 'apk', icon: '📱', label: 'APK', title: 'MENU APK',
+    aliases: ['apps', 'application', 'applications'],
+    commands: ['apk', 'apksearch']
   },
   {
-    key: 'groupe',
-    title: 'ɢʀᴏᴜᴘᴇ',
-    icon: '🛡️',
-    aliases: ['group', 'groupes'],
-    commands: [
-      'groupinfo', 'staff', 'tagall', 'tag', 'hidetag', 'tagnotadmin',
-      'kick', 'kickall', 'kickall2', 'promote', 'demote', 'warn', 'warnings',
-      'mute', 'unmute', 'open', 'close', 'antilink', 'antitag',
-      'antiflood', 'antispam', 'antimedia', 'antisticker', 'antivoice',
-      'antibadword', 'antibot', 'welcome', 'goodbye', 'setgname',
-      'setgdesc', 'setgpp', 'resetlink', 'delete', 'clear', 'deleteall',
-      'groupid', 'members', 'admins', 'nonadmins', 'mentionall',
-      'mentionadmins', 'mentionnonadmins', 'groupstats', 'groupcreated',
-      'rules', 'setrules', 'clearrules', 'announce', 'grouplink',
-      'revokeinvite', 'lockchat', 'unlockchat', 'restrictchat',
-      'unrestrictchat', 'slowmode', 'clearwarns', 'promoteall',
-      'demoteall', 'kickbots', 'poll', 'groupaudit', 'hijack',
-      'groupmenu', 'openchat', 'closechat', 'demoteadmin'
-    ]
+    key: 'group', icon: '👥', label: 'GROUPE', title: 'MENU GROUPE',
+    aliases: ['groupe', 'groupes', 'groups', 'admin', 'administration', 'moderation', 'modération'],
+    commands: ['groupinfo', 'staff', 'groupid', 'members', 'admins', 'nonadmins', 'groupstats', 'groupcreated', 'topmembers', 'rules', 'setrules', 'clearrules', 'grouplink', 'resetlink', 'revokeinvite', 'tagall', 'tag', 'hidetag', 'tagnotadmin', 'mentionall', 'mentionadmins', 'mentionnonadmins', 'poll', 'warn', 'warnings', 'clearwarns', 'kick', 'kickall', 'kickall2', 'kicktime', 'kickbots', 'promote', 'demote', 'promotetime', 'promoteall', 'demoteall', 'demoteadmin', 'mute', 'unmute', 'ban', 'unban', 'open', 'close', 'openchat', 'closechat', 'lockchat', 'unlockchat', 'restrictchat', 'unrestrictchat', 'slowmode', 'announce', 'approveall', 'setgname', 'setgdesc', 'setgpp', 'del', 'deleteall', 'clear', 'groupaudit', 'hijack', 'fixgroup', 'welcome', 'goodbye', 'jid']
   },
   {
-    key: 'ia',
-    title: 'AI',
-    icon: '🧠',
-    aliases: ['ai', 'intelligenceartificielle'],
-    commands: ['ai', 'chatbot', 'imagine', 'sora', 'anime']
+    key: 'anti', icon: '🛡️', label: 'PROTECTIONS', title: 'MENU PROTECTIONS',
+    aliases: ['protect', 'protection', 'protections', 'securite', 'sécurité', 'privacy', 'security'],
+    commands: ['antilink', 'antitag', 'antibot', 'antibadword', 'antipromote', 'antimentiongc', 'antiflood', 'antispam', 'antimedia', 'antisticker', 'antivoice', 'antidelete', 'anticall', 'pmblocker']
   },
   {
-    key: 'image_edits',
-    title: 'ɪᴍᴀɢᴇ_ᴇᴅɪᴛs',
-    icon: '🖼️',
-    aliases: ['images', 'photo', 'photoedit'],
-    commands: ['blur', 'removebg', 'remini', 'crop', 'sticker', 'simage', 'meme', 'take']
+    key: 'sticker', icon: '🦊', label: 'STICKERS', title: 'MENU STICKERS',
+    aliases: ['stickers', 'autocollant', 'autocollants'],
+    commands: ['sticker', 'simage', 'take', 'crop', 'attp', 'emojimix', 'stickertelegram']
   },
   {
-    key: 'logo',
-    title: 'ʟᴏɢᴏ & ᴛᴇxᴛᴇ',
-    icon: '✨',
-    aliases: ['logos', 'text'],
-    commands: ['textmaker', 'neon', 'glitch', 'fire', 'ice', 'snow', 'matrix', 'hacker', 'devil', 'sand', 'blackpink', 'thunder', 'arena']
+    key: 'media', icon: '🎬', label: 'MÉDIAS', title: 'MENU MÉDIAS',
+    aliases: ['medias', 'médias', 'image', 'images', 'effets'],
+    commands: ['gif', 'vv', 'vv2', 'blur', 'wasted', 'circle', 'lgbt', 'lolice', 'comrade', 'gay', 'glass', 'jail', 'passed', 'triggered', 'simpcard', 'tonikawa', 'namecard', 'oogway', 'oogway2', 'tweet', 'ytcomment', 'heart', 'horny']
   },
   {
-    key: 'outils',
-    title: 'ᴏᴜᴛɪʟs',
-    icon: '🧰',
-    aliases: ['tools', 'utilitaires'],
-    commands: ['ping', 'alive', 'pair', 'menustyle', 'quotecard', 'viewtest', 'owner', 'jid', 'url', 'ss', 'ssweb', 'screenshot', 'settings', 'groupinfo', 'menu', 'allmenu', 'setprefix', 'prefix', 'prefixe', 'setcmd', 'vv', 'vv2']
+    key: 'search', icon: '🔍', label: 'RECHERCHE', title: 'MENU RECHERCHE',
+    aliases: ['recherche', 'recherches', 'chercher'],
+    commands: ['yts', 'wiki', 'define', 'lyrics', 'news', 'github', 'ss']
   },
   {
-    key: 'owner',
-    title: 'ᴏᴡɴᴇʀ',
-    icon: '👑',
-    aliases: ['proprietaire', 'propriétaire'],
-    commands: ['mode', 'clearsession', 'cleartmp', 'update', 'settings', 'autostatus', 'autoread', 'autotyping', 'anticall', 'pmblocker', 'setpp', 'areact', 'fakeract', 'sudo']
+    key: 'tools', icon: '🛠️', label: 'OUTILS', title: 'MENU OUTILS',
+    aliases: ['tool', 'outils', 'outil', 'utilitaires'],
+    commands: ['translate', 'tts', 'ss', 'qr', 'calc', 'percent', 'password', 'encode', 'decode', 'count', 'upper', 'lower', 'reverse', 'idch', 'tourl']
   },
   {
-    key: 'reactions',
-    title: 'ʀéᴀᴄᴛɪᴏɴs',
-    icon: '💫',
-    aliases: ['reaction', 'react'],
-    commands: ['areact', 'autoreact', 'fakeract', 'mention', 'setmention', 'heart']
+    key: 'fun', icon: '🎮', label: 'DIVERTISSEMENT', title: 'MENU DIVERTISSEMENT',
+    aliases: ['divertissement', 'amusement', 'funny'],
+    commands: ['joke', 'quote', 'fact', 'meme', 'compliment', 'insult', 'flirt', 'goodnight', 'shayari', 'roseday', 'character', 'simp', 'stupid', 'pies', 'china', 'india', 'indonesia', 'japan', 'korea', 'malaysia', 'thailand']
   },
   {
-    key: 'recherche',
-    title: 'sᴇᴀʀᴄʜ',
-    icon: '🔎',
-    aliases: ['search', 'recherche'],
-    commands: ['weather', 'news', 'github', 'repo', 'url', 'lyrics']
+    key: 'game', icon: '🎯', label: 'JEUX', title: 'MENU JEUX',
+    aliases: ['games', 'jeu', 'jeux'],
+    commands: ['tictactoe', 'move', 'surrender', 'hangman', 'guess', 'trivia', 'answer', '8ball', 'truth', 'dare', 'ship', 'dice', 'flip', 'choose']
   },
   {
-    key: 'statut',
-    title: 'sᴛᴀᴛᴜs',
-    icon: '📡',
-    aliases: ['status'],
-    commands: ['alive', 'ping', 'autostatus', 'autoread', 'autotyping']
+    key: 'economy', icon: '💰', label: 'ÉCONOMIE', title: 'MENU ÉCONOMIE',
+    aliases: ['economie', 'économie', 'eco', 'money', 'argent'],
+    commands: ['balance', 'daily', 'work', 'deposit', 'withdraw', 'transfer', 'gamble', 'richest']
   },
   {
-    key: 'systeme',
-    title: 'sʏsᴛèᴍᴇ',
-    icon: '⚙️',
-    aliases: ['system', 'config'],
-    commands: ['menu', 'allmenu', 'settings', 'update', 'clearsession', 'cleartmp']
+    key: 'religi', icon: '🟣', label: 'RELIGION', title: 'MENU RELIGION',
+    aliases: ['religion', 'religions', 'religieux'],
+    commands: ['quran', 'bible', 'prayer']
   },
   {
-    key: 'telechargement',
-    title: 'ᴛéʟéᴄʜᴀʀɢᴇᴍᴇɴᴛ',
-    icon: '📥',
-    aliases: ['download', 'downloads', 'telechargements'],
-    commands: ['play', 'song', 'video', 'instagram', 'facebook', 'tiktok', 'spotify']
+    key: 'status', icon: '📸', label: 'STATUTS', title: 'MENU STATUTS',
+    aliases: ['statut', 'statuts', 'story', 'stories'],
+    commands: ['addstatut', 'gstatus', 'autostatus', 'areact']
   },
   {
-    key: 'jeux',
-    title: 'ᴊᴀʀᴠɪs-ɢᴀᴍᴇs',
-    icon: '🎮',
-    aliases: ['games', 'game', 'jeu'],
-    commands: ['tictactoe', 'hangman', 'trivia', '8ball', 'truth', 'dare', 'ship']
+    key: 'owner', icon: '👑', label: 'PROPRIÉTAIRE', title: 'MENU PROPRIÉTAIRE',
+    aliases: ['proprietaire', 'propriétaire', 'proprio', 'panel', 'console', 'settings', 'reglages', 'réglages', 'config'],
+    commands: ['mode', 'owners', 'autoread', 'autotyping', 'areact', 'fakeract', 'channelalert', 'setpp', 'panel', 'sessions', 'delsession', 'ram', 'gc', 'logs', 'disk', 'dltest', 'config', 'lang', 'restart', 'cleartmp', 'clearsession', 'update', 'stats', 'settings', 'prefix', 'setprefix', 'setcmd', 'mention', 'setmention', 'menustyle', 'quotecard', 'preview', 'imagemode', 'replystyle', 'viewtest', 'followchannel']
   },
   {
-    key: 'medias',
-    title: 'ᴍéᴅɪᴀs',
-    icon: '🎨',
-    aliases: ['media', 'sticker'],
-    commands: ['sticker', 'simage', 'stickertelegram', 'stickercrop', 'gif', 'meme', 'take', 'vv', 'vv2']
-  }
+    key: 'profile', icon: '👤', label: 'PROFIL', title: 'MENU PROFIL',
+    aliases: ['profil', 'profils', 'moi'],
+    commands: ['profile', 'getpp', 'setpp', 'setbio', 'setname', 'owner']
+  },
+  {
+    key: 'notes', icon: '📝', label: 'NOTES', title: 'MENU NOTES',
+    aliases: ['note', 'memo', 'mémo', 'carnet'],
+    commands: ['addnote', 'notes', 'delnote', 'clearnotes']
+  },
+  {
+    key: 'cyber', icon: '🔒', label: 'CYBER', title: 'MENU CYBER',
+    aliases: ['cybersecurite', 'cybersécurité', 'hack', 'reseau', 'réseau'],
+    commands: ['ip', 'dns', 'hash', 'b64', 'unb64', 'passcheck', 'genpass', 'urlcheck']
+  },
+  {
+    key: 'logo', icon: '✨', label: 'LOGOS', title: 'MENU LOGOS',
+    aliases: ['logos', 'logotype'],
+    commands: ['neon', 'devil', 'purple', 'hacker', 'blackpink', 'glitch', 'fire', '1917', 'arena']
+  },
+  {
+    key: 'textEffects', icon: '🎨', label: 'EFFETS DE TEXTE', title: 'MENU EFFETS DE TEXTE',
+    aliases: ['effetstexte', 'texteffect', 'texteffects', 'effetsdetexte'],
+    commands: ['metallic', 'ice', 'snow', 'impressive', 'matrix', 'light', 'thunder', 'leaves', 'sand']
+  },
+  {
+    key: 'music', icon: '🎵', label: 'MUSIQUE', title: 'MENU MUSIQUE',
+    aliases: ['musique', 'musiques', 'musics'],
+    commands: ['play', 'song', 'mp3', 'ytmp3', 'spotify', 'lyrics', 'music']
+  },
+  {
+    key: 'anime', icon: '🌸', label: 'ANIME', title: 'MENU ANIME',
+    aliases: ['animes', 'animu'],
+    commands: ['animu', 'animuquote', 'nom', 'poke', 'cry', 'kiss', 'pat', 'hug', 'wink', 'facepalm']
+  },
+  {
+    key: 'convert', icon: '🔄', label: 'CONVERSION', title: 'MENU CONVERSION',
+    aliases: ['convertir', 'conversion', 'converter'],
+    commands: ['sticker', 'simage', 'tourl', 'tts', 'translate', 'attp', 'emojimix', 'tomp3']
+  },
+  {
+    key: 'utils', icon: '⚙️', label: 'UTILITAIRES', title: 'MENU UTILITAIRES',
+    aliases: ['util', 'utilitaire', 'heure', 'infos', 'info', 'maths', 'calcul'],
+    commands: ['calc', 'percent', 'date', 'time', 'age', 'countdown', 'uptime', 'ping', 'alive', 'pair', 'stats', 'repo', 'qr']
+  },
+  {
+    key: 'broadcast', icon: '📡', label: 'DIFFUSION', title: 'MENU DIFFUSION',
+    aliases: ['diffusion', 'bc', 'annonce'],
+    commands: ['broadcast', 'bcgc', 'listgc']
+  },
+  {
+    key: 'random', icon: '🎲', label: 'ALÉATOIRE', title: 'MENU ALÉATOIRE',
+    aliases: ['aleatoire', 'aléatoire', 'hasard'],
+    commands: ['random', 'dice', 'flip', 'choose', '8ball', 'color', 'emoji']
+  },
+  {
+    key: 'social', icon: '💞', label: 'SOCIAL', title: 'MENU SOCIAL',
+    aliases: ['sociale', 'amour', 'love'],
+    commands: ['ship', 'flirt', 'compliment', 'hug', 'kiss', 'pat', 'wink', 'poke', 'cry', 'simp', 'heart']
+  },
+  {
+    key: 'weather', icon: '🌤️', label: 'MÉTÉO', title: 'MENU MÉTÉO',
+    aliases: ['meteo', 'météo', 'climat'],
+    commands: ['weather', 'meteo', 'forecast']
+  },
+  {
+    key: 'health', icon: '💪', label: 'SANTÉ', title: 'MENU SANTÉ',
+    aliases: ['sante', 'santé', 'fitness', 'forme'],
+    commands: ['bmi', 'bmr', 'water', 'idealweight', 'sleep']
+  },
+  {
+    key: 'premium', icon: '💎', label: 'PREMIUM', title: 'MENU PREMIUM',
+    aliases: ['vip', 'prime'],
+    commands: ['premium', 'sudo', 'kicktime', 'promotetime']
+  },
 ];
 
-const commandCount = settings.commandCount || 148;
+// Commandes affichées en tête du menu principal.
+const MAIN_COMMANDS = ['ping', 'pair'];
+
+function allCommands() {
+  const set = new Set(MAIN_COMMANDS);
+  for (const menu of MENUS) for (const command of menu.commands) set.add(command);
+  return set;
+}
+
+const commandCount = () => allCommands().size;
+
+/* ─── Outils de mise en forme ───────────────────────────────── */
 
 function normalize(value) {
   return String(value || '')
@@ -163,190 +196,201 @@ function normalize(value) {
     .replace(/[^a-z0-9]+/g, '');
 }
 
-function nowInfo() {
+const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
+
+function formatDuration(totalSeconds) {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return [plural(d, 'jour', 'jours'), plural(h, 'heure', 'heures'), plural(m, 'minute', 'minutes'), plural(s, 'seconde', 'secondes')].join(' • ');
+}
+
+function nowText() {
   const now = new Date();
-  return {
-    date: now.toLocaleDateString('fr-FR', { timeZone: 'Africa/Kinshasa' }),
-    time: now.toLocaleTimeString('fr-FR', { timeZone: 'Africa/Kinshasa', hour12: false, hour: '2-digit', minute: '2-digit' }),
-    runtime: (() => {
-      const seconds = Math.floor(process.uptime());
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
-    })()
-  };
+  const date = now.toLocaleDateString('fr-FR', { timeZone: 'Africa/Kinshasa' });
+  const time = now.toLocaleTimeString('fr-FR', { timeZone: 'Africa/Kinshasa', hour12: false });
+  return `${date} ${time}`;
 }
 
-// Noms lisibles pour la liste déroulante des boutons.
-const LABELS = {
-  confidentialite: 'Confidentialité', conversion: 'Conversion', fun: 'Divertissement',
-  fx_audio: 'Effets audio', groupe: 'Groupe', ia: 'Intelligence artificielle',
-  image_edits: "Retouche d'images", logo: 'Logos & texte', outils: 'Outils',
-  owner: 'Propriétaire', reactions: 'Réactions', recherche: 'Recherche',
-  statut: 'Statuts', systeme: 'Système', telechargement: 'Téléchargements',
-  jeux: 'Jeux', medias: 'Médias'
-};
-
-// Titres affichés dans le corps du menu (petites capitales, en français).
-const TITLES = {
-  confidentialite: 'ᴄᴏɴғɪᴅᴇɴᴛɪᴀʟɪᴛé', conversion: 'ᴄᴏɴᴠᴇʀsɪᴏɴ', fun: 'ᴅɪᴠᴇʀᴛɪssᴇᴍᴇɴᴛ',
-  fx_audio: 'ᴇғғᴇᴛs ᴀᴜᴅɪᴏ', groupe: 'ɢʀᴏᴜᴘᴇ', ia: 'ɪɴᴛᴇʟʟɪɢᴇɴᴄᴇ ᴀʀᴛɪғɪᴄɪᴇʟʟᴇ',
-  image_edits: "ʀᴇᴛᴏᴜᴄʜᴇ ᴅ'ɪᴍᴀɢᴇs", logo: 'ʟᴏɢᴏs & ᴛᴇxᴛᴇ', outils: 'ᴏᴜᴛɪʟs',
-  owner: 'ᴘʀᴏᴘʀɪéᴛᴀɪʀᴇ', reactions: 'ʀéᴀᴄᴛɪᴏɴs', recherche: 'ʀᴇᴄʜᴇʀᴄʜᴇ',
-  statut: 'sᴛᴀᴛᴜᴛs', systeme: 'sʏsᴛèᴍᴇ', telechargement: 'ᴛéʟéᴄʜᴀʀɢᴇᴍᴇɴᴛs',
-  jeux: 'ᴊᴇᴜx', medias: 'ᴍéᴅɪᴀs'
-};
-const titleOf = (category) => TITLES[category.key] || category.title;
-
-function botMode() {
+function sessionStats() {
+  let total = 0;
+  let active = 0;
   try {
-    const data = JSON.parse(fs.readFileSync('./data/messageCount.json', 'utf8'));
-    return data.isPublic === false ? 'privé' : 'public';
-  } catch {
-    return 'public';
-  }
+    total = require('../lib/session-manager').sessionManager.listSessions().length;
+  } catch { /* gestionnaire indisponible */ }
+  try {
+    active = require('../lib/botInstance').getConnectedBots().length;
+  } catch { /* aucune instance */ }
+  if (!total) total = active;
+  return { total, active };
 }
 
-function menuHeader(senderNum, prefix) {
-  const info = nowInfo();
-  const who = senderNum && senderNum !== '?' ? `@${senderNum}` : 'Monsieur';
-  return (
-    `╭━━⟪ 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 ⟫━━╮\n` +
-    `┃ Bonjour ${who}.\n` +
-    `┃ Tous mes systèmes sont opérationnels.\n` +
-    `┃\n` +
-    `┃ ◈ ᴘʀéғɪxᴇ : ${prefix}\n` +
-    `┃ ◈ ᴍᴏᴅᴇ : ${botMode()}\n` +
-    `┃ ◈ ᴄᴏᴍᴍᴀɴᴅᴇs : ${commandCount}\n` +
-    `┃ ◈ ᴅᴀᴛᴇ : ${info.date} • ${info.time}\n` +
-    `┃ ◈ ᴅɪsᴘᴏɴɪʙɪʟɪᴛé : ${info.runtime}\n` +
-    `┃ ◈ ᴠᴇʀsɪᴏɴ : ${settings.version || '2.0.0'}\n` +
-    `┃ ◈ ᴘʀᴏᴘʀɪéᴛᴀɪʀᴇ : ${settings.menuOwner || settings.botOwner || 'NEXO-JARVIS'}\n` +
-    `╰━━━━━━━━━━━━━━━━━━━╯`
-  );
+// Durée courte : « 15 h 23 min », « 34 min 7 s »… (les unités à zéro en tête disparaissent).
+function shortDuration(totalSeconds) {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const parts = [
+    [Math.floor(seconds / 86400), 'j'], [Math.floor((seconds % 86400) / 3600), 'h'],
+    [Math.floor((seconds % 3600) / 60), 'min'], [seconds % 60, 's']
+  ];
+  const first = parts.findIndex(([value]) => value > 0);
+  return (first === -1 ? [[0, 's']] : parts.slice(first, first + 3)).map(([value, unit]) => `${value} ${unit}`).join(' ');
 }
 
-function categoryBox(category, prefix) {
-  return (
-    `╭━━⟪ ${titleOf(category)} ⟫━━╮\n` +
-    category.commands.map((command, index) =>
-      `┃ ➠ ${String(index + 1).padStart(2, '0')} • ${prefix}${command}`
-    ).join('\n') +
-    `\n╰━━━━━━━━━━━━━━━━━━━╯`
-  );
+function menuHeader({ user, prefix, menuName }) {
+  const { total, active } = sessionStats();
+  const now = new Date();
+  return style.header(`🤖 ${settings.botName || 'NEXO-JARVIS XMD'}`, [
+    ['Utilisateur', user],
+    ['Préfixe', `[${prefix}]`],
+    ['Propriétaire', settings.menuOwner || settings.botOwner || 'NEXO-JARVIS'],
+    ['Commandes', commandCount()],
+    ['Sessions', `${active} / ${total}`],
+    ['Bot actif', shortDuration(process.uptime())],
+    ['Serveur actif', shortDuration(os.uptime())],
+    ['Date', now.toLocaleDateString('fr-FR', { timeZone: 'Africa/Kinshasa' })],
+    ['Heure', now.toLocaleTimeString('fr-FR', { timeZone: 'Africa/Kinshasa', hour12: false })],
+    ['Statut', '🟢 En ligne']
+  ]);
 }
 
-function categoryIndex(query) {
-  const normalized = normalize(query);
-  if (/^\d+$/.test(String(query).trim())) {
-    const index = Number(query) - 1;
-    return categories[index] ? index : -1;
-  }
-  return categories.findIndex(category => (
-    normalize(category.key) === normalized ||
-    normalize(category.title) === normalized ||
-    normalize(LABELS[category.key]) === normalized ||
-    (category.aliases || []).some(alias => normalize(alias) === normalized)
-  ));
+// Une boîte par catégorie : ╭═『 👥 Groupe 』═╮ / │ ◈ .commande / ╰═══╯
+function categoryBox(menu, prefix) {
+  return style.listBox(`${menu.icon} ${menu.label}`, menu.commands.map(command => `${prefix}${command}`));
 }
 
-function overview(senderNum, prefix, notice = '') {
-  const categoryLines = categories.map((category, index) =>
-    `┃ ➠ ${String(index + 1).padStart(2, '0')} • ${titleOf(category)}`
-  ).join('\n');
-
-  return (
-    `${notice ? `${notice}\n\n` : ''}` +
-    `${menuHeader(senderNum, prefix)}\n\n` +
-    `╭━━⟪ ᴄᴀᴛéɢᴏʀɪᴇs ⟫━━╮\n` +
-    `${categoryLines}\n` +
-    `╰━━━━━━━━━━━━━━━━━━━╯\n\n` +
-    `Choisissez une catégorie pour afficher ses commandes, Monsieur.`
-  );
+function footerText() {
+  return '';
 }
 
-function allMenu(senderNum, prefix) {
-  return (
-    `${menuHeader(senderNum, prefix)}\n\n` +
-    categories.map(category => categoryBox(category, prefix)).join('\n\n') +
-    `\n\nTapez *${prefix}menu* pour revenir aux catégories.\n` +
-    `> 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴇɴsᴇᴍʙʟᴇ ᴅᴇs sʏsᴛèᴍᴇs ᴅɪsᴘᴏɴɪʙʟᴇs`
-  );
+// Le bas du menu n'est écrit qu'UNE fois : dans le pied du message à boutons, ou à la fin du texte simple.
+function textTail() {
+  return '';
+}
+
+/* ─── Contenu des vues ──────────────────────────────────────── */
+
+function mainMenuItems(prefix) {
+  const items = [`🏓 ${prefix}ping`, `🔗 ${prefix}pair`];
+  for (const menu of MENUS) items.push(`${menu.icon} ${prefix}${menu.key}menu`);
+  items.push(`📜 ${prefix}allmenu`);
+  return items;
+}
+
+// Présentation de la capture, en français : titre, salutation, bloc « INFORMATIONS DU BOT » (barre verticale), boutons.
+function greeting(date = new Date()) {
+  const hour = Number(date.toLocaleString('en-GB', { timeZone: 'Africa/Kinshasa', hour: '2-digit', hour12: false })) % 24;
+  if (hour < 5) return 'Bonne nuit 🌙';
+  if (hour < 12) return 'Bonjour ☀️';
+  if (hour < 18) return 'Bon après-midi 🌤️';
+  if (hour < 22) return 'Bonsoir 🌆';
+  return 'Bonne nuit 🌙';
+}
+
+const MENU_FOOTER = () => `À utiliser avec responsabilité | ${settings.menuOwner || settings.botOwner || 'NEXO-JARVIS'}`;
+
+function overviewText(ctx) {
+  const { total, active } = sessionStats();
+  const now = new Date();
+  const botName = settings.botName || 'NEXO-JARVIS XMD';
+  const info = [
+    ['🍵', 'Créateur', settings.menuOwner || settings.botOwner || 'NEXO-JARVIS'],
+    ['🍔', 'Nom', botName],
+    ['🍉', 'Version', settings.version || '2.0.0'],
+    ['🔣', 'Préfixe', `[${ctx.prefix}]`],
+    ['📚', 'Commandes', commandCount()],
+    ['🔌', 'Sessions', `${active} / ${total}`],
+    ['⏳', 'Disponibilité', shortDuration(process.uptime())],
+    ['🕒', 'Heure', now.toLocaleTimeString('fr-FR', { timeZone: 'Africa/Kinshasa' })]
+  ];
+  return [
+    `🌐 *BOT WHATSAPP MULTI-APPAREILS*`,
+    `${greeting(now)} *${ctx.user}*, je m'appelle *${botName}*.`,
+    `✨ _Je peux vous aider dans de nombreuses tâches sur WhatsApp._`,
+    '```INFORMATIONS DU BOT```\n' + info.map(([icon, label, value]) => `> ${icon} *${label} :* ${value}`).join('\n'),
+    `👇 _Touchez « Voir toutes les options » pour choisir une catégorie._`
+  ].join('\n\n');
+}
+
+function categoryText(menu, ctx) {
+  return [
+    menuHeader({ ...ctx, menuName: menu.label }),
+    categoryBox(menu, ctx.prefix)
+  ].join('\n\n');
+}
+
+function allMenuText(ctx) {
+  return [
+    menuHeader({ ...ctx, menuName: 'Tous les menus' }),
+    ...MENUS.map(menu => categoryBox(menu, ctx.prefix))
+  ].join('\n\n');
+}
+
+function findMenu(query) {
+  if (/^\d+$/.test(String(query).trim())) return MENUS[Number(query) - 1] || null;
+  const wanted = normalize(String(query || '').replace(/menu$/i, ''));
+  if (!wanted) return null;
+  return MENUS.find(menu =>
+    normalize(menu.key) === wanted ||
+    normalize(menu.label) === wanted ||
+    normalize(menu.title) === wanted ||
+    menu.aliases.some(alias => normalize(alias) === wanted)
+  ) || null;
 }
 
 /* ─── Boutons (native flow) ─────────────────────────────────── */
 
-const channelLink = () => settings.channelLink || 'https://whatsapp.com/channel/0029VbDCIHn4tRrpvS6YS332';
-
-function categoryRows(prefix) {
-  return categories.map((category, index) => ({
-    header: '',
-    title: `${category.icon} ${LABELS[category.key] || category.key}`,
-    description: `${category.commands.length} commande${category.commands.length > 1 ? 's' : ''}`,
-    id: `${prefix}menu ${index + 1}`
-  }));
-}
-
+// Présentation « Please select any category » : une seule liste, une ligne par catégorie (icône + nom + « Menu »).
 function listButton(prefix) {
-  const rows = categoryRows(prefix);
-  const sections = [];
-  for (let i = 0; i < rows.length; i += 9) {
-    sections.push({
-      title: rows.length > 9 ? `Catégories ${Math.floor(i / 9) + 1}/${Math.ceil(rows.length / 9)}` : 'Catégories',
-      highlight_label: '',
-      rows: rows.slice(i, i + 9)
-    });
-  }
-  sections.push({
-    title: 'Raccourcis',
-    highlight_label: '',
-    rows: [
-      { header: '', title: 'Menu complet', description: 'Toutes les commandes en un message', id: `${prefix}allmenu` },
-      { header: '', title: 'Diagnostic système', description: 'Latence et état des systèmes', id: `${prefix}ping` }
-    ]
-  });
-  return { name: 'single_select', params: { title: 'Catégories de commandes', sections } };
+  const rows = MENUS.map(menu => ({
+    header: '',
+    title: `${menu.icon} ${menu.key} Menu`,
+    description: '',
+    id: `${prefix}${menu.key.toLowerCase()}menu`
+  }));
+  return { name: 'single_select', params: { title: 'Veuillez choisir une catégorie', sections: [{ title: '', highlight_label: '', rows }] } };
 }
 
-function channelButton() {
-  return { name: 'cta_url', params: { display_text: 'CHAÎNE', url: channelLink(), merchant_url: channelLink() } };
+function creatorUrl() {
+  const number = String(settings.ownerNumber || (Array.isArray(settings.ownerNumbers) && settings.ownerNumbers[0]) || '').replace(/\D/g, '');
+  return number ? `https://wa.me/${number}` : channel.link();
 }
 
-function quickButton(text, id) {
-  return { name: 'quick_reply', params: { display_text: text, id } };
-}
+// « Visit My Creator » : premier élément de la feuille, comme sur la capture.
+const creatorButton = () => ({
+  name: 'cta_url',
+  params: { display_text: 'Visiter mon créateur', url: creatorUrl(), merchant_url: creatorUrl() }
+});
+
+const quickButton = (text, id) => ({ name: 'quick_reply', params: { display_text: text, id } });
 
 function buttonsFor(view, prefix) {
-  if (view === 'overview') return [listButton(prefix), quickButton('Menu complet', `${prefix}allmenu`), channelButton()];
-  return [listButton(prefix), quickButton('Retour au menu', `${prefix}menu`), channelButton()];
+  if (view === 'overview') return [creatorButton(), listButton(prefix)];
+  return [creatorButton(), listButton(prefix), quickButton('↩️ Menu principal', `${prefix}menu`)];
 }
 
-/* ─── Envoi ─────────────────────────────────────────────────── */
+/* ─── Envoi : TOUJOURS un seul message ──────────────────────── */
 
-const barText = (view) => view === 'overview'
-  ? 'Choisissez une catégorie, Monsieur.'
-  : 'Navigation du menu, Monsieur.';
+async function sendMenu(sock, chatId, message, text, senderId, view, prefix) {
+  const style = displayFlags.getValue('menuStyle') === 'texte' ? 'texte' : 'complet';
 
-async function sendMenu(sock, chatId, message, text, senderId, view = 'overview', prefix = '.') {
-  // Styles (réglables avec .menustyle) :
-  //  - mixte (défaut) : le menu en TEXTE, lu par toutes les versions de WhatsApp, puis une barre de
-  //    boutons juste en dessous. Les boutons sont un format WhatsApp Business : un téléphone qui ne les
-  //    affiche pas voit quand même tout le menu.
-  //  - complet : un seul message à boutons (invisible sur les téléphones qui ne gèrent pas ce format).
-  //  - texte : texte seul.
-  // L'aperçu d'image, le bouton chaîne et la fausse citation sont ajoutés par lib/presentation.js.
-  const style = require('../lib/displayFlags').getValue('menuStyle') || 'mixte';
-  const buttonContext = { ...channelInfo.contextInfo, mentionedJid: [senderId] };
-
+  // « allmenu » est trop long pour un message à boutons : il part en texte simple (toujours un seul message).
   if (style === 'complet' && view !== 'all') {
     try {
       const { sendInteractiveMessage } = require('../lib/interactiveButtons');
+      const presentation = require('../lib/presentation');
+      // Mode « vraie image » : la photo est en tête du menu (sinon aperçu de lien intégré).
+      const photo = presentation.imageReplyEnabled() ? await presentation.nextPhoto() : null;
       await sendInteractiveMessage(sock, chatId, {
-        title: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
+        title: '',
         body: text,
-        footer: 'À votre service, Monsieur.',
+        
         buttons: buttonsFor(view, prefix),
-        contextInfo: buttonContext,
+        footer: view === 'overview' ? MENU_FOOTER() : '',
+        keepFooter: view === 'overview',
+        image: photo,
+        preview: !photo,
         quoted: message
       });
       return;
@@ -355,86 +399,62 @@ async function sendMenu(sock, chatId, message, text, senderId, view = 'overview'
     }
   }
 
-  await sock.sendMessage(chatId, {
-    text,
-    mentions: [senderId],
-    ...channelInfo
-  }, { quoted: message });
-
-  if (style === 'texte' || style === 'complet') return;
-
-  try {
-    const { sendInteractiveMessage } = require('../lib/interactiveButtons');
-    await sendInteractiveMessage(sock, chatId, {
-      title: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
-      body: barText(view),
-      footer: 'À votre service, Monsieur.',
-      buttons: buttonsFor(view, prefix),
-      contextInfo: buttonContext,
-      quoted: message
-    });
-  } catch (error) {
-    console.warn('[menu] Barre de boutons non envoyée (le menu texte est déjà livré) :', error.message);
-  }
+  // Menu en texte : le bouton « Voir la chaîne », l'aperçu d'image et la fausse citation sont ajoutés par lib/presentation.js.
+  await sock.sendMessage(chatId, { text: text + textTail(), __noframe: true }, { quoted: message });
 }
 
-// Retrouve la commande à partir du titre d'une ligne choisie (« 🧠 Intelligence artificielle »).
+// Retrouve la commande à partir du titre d'une ligne choisie (« 👥 group Menu »).
 function resolveMenuChoice(title, prefix = '.') {
   const clean = normalize(String(title).replace(/^[^\p{L}\p{N}]+/u, ''));
   if (!clean) return '';
-  if (clean === normalize('Menu complet')) return `${prefix}allmenu`;
-  if (clean === normalize('Retour au menu')) return `${prefix}menu`;
+  if (clean === normalize('Tous les menus')) return `${prefix}allmenu`;
+  if (clean === normalize('Menu principal')) return `${prefix}menu`;
   if (clean === normalize('Diagnostic système')) return `${prefix}ping`;
-  const index = categories.findIndex(category =>
-    normalize(LABELS[category.key] || '') === clean ||
-    normalize(titleOf(category)) === clean ||
-    normalize(category.key) === clean
-  );
-  return index >= 0 ? `${prefix}menu ${index + 1}` : '';
+  const menu = MENUS.find(item => {
+    const names = [item.key, `${item.key}menu`, item.label, item.title].map(normalize);
+    return names.includes(clean);
+  });
+  return menu ? `${prefix}${menu.key}menu` : '';
 }
 
 async function helpCommand(sock, chatId, message, query = '') {
   const senderId = message.key.participant || message.key.remoteJid || '';
-  const senderNum = senderId.split('@')[0] || '?';
+  const senderNum = senderId.split('@')[0].split(':')[0] || '?';
+  const user = (message.pushName && String(message.pushName).trim()) || senderNum;
   const prefix = getPrefix(chatId);
-  const normalizedQuery = String(query || '').trim();
+  const ctx = { user, prefix };
+  const wanted = String(query || '').trim();
+  const key = normalize(wanted);
 
-  if (!normalizedQuery || ['menu', 'categories', 'category'].includes(normalize(normalizedQuery))) {
-    await sendMenu(sock, chatId, message, overview(senderNum, prefix), senderId, 'overview', prefix);
+  if (!wanted || ['menu', 'main', 'principal', 'categories', 'category', 'help', 'aide'].includes(key)) {
+    await sendMenu(sock, chatId, message, overviewText(ctx), senderId, 'overview', prefix);
     return;
   }
 
-  if (['all', 'allmenu', 'full', 'tout'].includes(normalize(normalizedQuery))) {
-    await sendMenu(sock, chatId, message, allMenu(senderNum, prefix), senderId, 'all', prefix);
+  if (['all', 'allmenu', 'full', 'tout', 'tous', 'list'].includes(key)) {
+    await sendMenu(sock, chatId, message, allMenuText(ctx), senderId, 'all', prefix);
     return;
   }
 
-  const index = categoryIndex(normalizedQuery);
-  if (index < 0) {
-    await sendMenu(
-      sock,
-      chatId,
-      message,
-      overview(senderNum, prefix, `Je ne trouve aucune catégorie correspondant à *${normalizedQuery}*, Monsieur.`),
-      senderId,
-      'overview',
-      prefix
-    );
+  const menu = findMenu(wanted);
+  if (!menu) {
+    const notice = `*⚠️ Aucun menu ne correspond à « ${wanted} ».*`;
+    await sendMenu(sock, chatId, message, `${notice}\n\n${overviewText(ctx)}`, senderId, 'overview', prefix);
     return;
   }
 
-  const category = categories[index];
-  await sendMenu(
-    sock,
-    chatId,
-    message,
-    `${categoryBox(category, prefix)}\n\n` +
-    `Catégorie ${index + 1}/${categories.length} • ${LABELS[category.key] || category.key}`,
-    senderId,
-    'category',
-    prefix
-  );
+  await sendMenu(sock, chatId, message, categoryText(menu, ctx), senderId, 'category', prefix);
 }
 
 module.exports = helpCommand;
 module.exports.resolveMenuChoice = resolveMenuChoice;
+module.exports.listButtonRows = prefix => listButton(prefix).params.sections[0].rows;
+module.exports.MENUS = MENUS;
+module.exports.MAIN_COMMANDS = MAIN_COMMANDS;
+module.exports.allCommands = allCommands;
+module.exports.commandCount = commandCount;
+module.exports.overviewText = overviewText;
+module.exports.allMenuText = allMenuText;
+module.exports.findMenu = findMenu;
+module.exports.formatDuration = formatDuration;
+module.exports.shortDuration = shortDuration;

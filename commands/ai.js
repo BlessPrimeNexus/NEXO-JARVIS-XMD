@@ -25,7 +25,7 @@ async function aiCommand(sock, chatId, message) {
             }, { quoted: message });
         }
 
-        await sock.sendMessage(chatId, { text: result.text }, { quoted: message });
+        await sock.sendMessage(chatId, { text: result.text, __plain: true }, { quoted: message });
     } catch (error) {
         console.error('AI Command Error:', error);
         try {

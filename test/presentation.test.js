@@ -1,157 +1,221 @@
 'use strict';
+process.env.NEXO_FANCY_FONT = '0';   // les tests lisent le texte en lettres normales (la police monospace est testée à part)
 
-process.env.NEXO_NO_THUMBNAIL_FETCH = '1';
-process.env.PREVIEW_IMAGES = [
-    'https://files.catbox.moe/aaa111.jpg',
-    'https://files.catbox.moe/bbb222.jpg',
-    'https://files.catbox.moe/ccc333.jpg',
-    'https://files.catbox.moe/REMPLACE_04.jpg'
-].join(',');
+process.env.DISPLAY_FLAGS_FILE = require('node:path').join(require('node:os').tmpdir(), `nexo-display-${process.pid}.json`);
+process.env.CHANNEL_CACHE_FILE = require('node:path').join(require('node:os').tmpdir(), `nexo-channel-${process.pid}.json`);
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const channel = require('../lib/channel');
 const presentation = require('../lib/presentation');
-const song = require('../commands/song');
+const displayFlags = require('../lib/displayFlags');
 
 const GROUP = '120363000000000000@g.us';
+const NEW_JID = '120363999999999999@newsletter';
+const OLD_JID = '120363426264191950@newsletter';
 
-test('les liens "REMPLACE" sont ignorés, les vrais liens sont gardés', () => {
-    const list = presentation.configuredImages();
-    assert.equal(list.length, 3);
-    assert.ok(list.every(url => url.startsWith('https://files.catbox.moe/')));
-    assert.ok(!list.some(url => /REMPLACE/.test(url)));
-});
+// Les tests d'aperçu partent du mode « aperçu » ; le mode vraie image a ses propres tests plus bas.
+displayFlags.override('imageReply', false);
+displayFlags.override('previewImage', false);   // défaut du bot : aperçu coupé (cause d'invisibilité)
 
-test('la rotation utilise chaque image une fois par cycle sans répétition immédiate', () => {
-    const items = ['a', 'b', 'c', 'd', 'e'];
-    const rotator = presentation.createRotator(items, Math.random);
-    let previous = null;
-    for (let cycle = 0; cycle < 50; cycle += 1) {
-        const seen = [];
-        for (let i = 0; i < items.length; i += 1) {
-            const value = rotator.next();
-            assert.notEqual(value, previous, 'même image deux fois de suite');
-            previous = value;
-            seen.push(value);
-        }
-        assert.deepEqual([...seen].sort(), items);
-    }
-});
-
-test('une seule image configurée : elle est renvoyée à chaque fois', () => {
-    const rotator = presentation.createRotator(['seule']);
-    assert.equal(rotator.next(), 'seule');
-    assert.equal(rotator.next(), 'seule');
-});
-
-test('liste vide : aucun aperçu et aucune erreur', () => {
-    assert.equal(presentation.createRotator([]).next(), null);
-});
-
-test('un message texte reçoit le bouton chaîne et un aperçu image', () => {
-    const out = presentation.decorate(GROUP, { text: 'Bonjour' });
-    const ctx = out.contextInfo;
-    assert.equal(out.text, 'Bonjour');
-    assert.equal(ctx.isForwarded, true);
-    assert.ok(ctx.forwardedNewsletterMessageInfo.newsletterJid.endsWith('@newsletter'));
-    assert.equal(ctx.externalAdReply.mediaType, 1);
-    assert.equal(ctx.externalAdReply.renderLargerThumbnail, true);
-    assert.match(ctx.externalAdReply.thumbnailUrl, /^https:\/\/files\.catbox\.moe\//);
-});
-
-test('les images défilent à chaque message texte', () => {
-    const urls = new Set();
-    for (let i = 0; i < 9; i += 1) {
-        urls.add(presentation.decorate(GROUP, { text: 'x' }).contextInfo.externalAdReply.thumbnailUrl);
-    }
-    assert.equal(urls.size, 3);
-});
-
-test('les mentions et le contexte existant sont conservés', () => {
-    const out = presentation.decorate(GROUP, {
-        text: 'Salut @x',
-        mentions: ['1@s.whatsapp.net'],
-        contextInfo: { mentionedJid: ['1@s.whatsapp.net'], forwardingScore: 7 }
+function makeSock() {
+    const sent = [];
+    const sock = presentation.wrapSocket({
+        user: { id: '243822993775:5@s.whatsapp.net' },
+        sendMessage: async (jid, content, options) => { sent.push({ jid, content, options }); return { key: { id: `ID${sent.length}`, remoteJid: jid, fromMe: true }, message: {} }; },
+        relayMessage: async () => ({})
     });
-    assert.deepEqual(out.mentions, ['1@s.whatsapp.net']);
-    assert.deepEqual(out.contextInfo.mentionedJid, ['1@s.whatsapp.net']);
-    assert.equal(out.contextInfo.forwardingScore, 7);
-    assert.ok(out.contextInfo.forwardedNewsletterMessageInfo);
+    return { sock, sent };
+}
+
+test('la chaîne officielle pointe vers le nouveau lien', () => {
+    assert.equal(channel.link(), 'https://whatsapp.com/channel/0029Vb78ycrInlqYocbYLX0P');
+    assert.equal(channel.validJid(NEW_JID), true);
+    assert.equal(channel.validJid('abc'), false);
 });
 
-test('un aperçu déjà défini par la commande n\'est pas écrasé', () => {
-    const custom = { title: 'Perso', body: 'x', thumbnailUrl: 'https://exemple.test/a.jpg' };
-    const out = presentation.decorate(GROUP, { text: 'a', contextInfo: { externalAdReply: custom } });
-    assert.equal(out.contextInfo.externalAdReply.title, 'Perso');
+test('tant que le JID est inconnu, aucun bloc « Voir la chaîne » ne pointe vers l\'ancienne chaîne', async () => {
+    channel._reset({});
+    const { sock, sent } = makeSock();
+    await sock.sendMessage(GROUP, { text: 'a', contextInfo: { forwardedNewsletterMessageInfo: { newsletterJid: OLD_JID } } });
+    assert.equal(sent[0].content.contextInfo.forwardedNewsletterMessageInfo, undefined);
 });
 
-test('les médias reçoivent le bouton chaîne mais pas d\'aperçu', () => {
-    for (const content of [{ image: Buffer.from('x'), caption: 'c' }, { audio: Buffer.from('x') }, { sticker: Buffer.from('x') }]) {
-        const out = presentation.decorate(GROUP, content);
-        assert.ok(out.contextInfo.forwardedNewsletterMessageInfo);
-        assert.equal(out.contextInfo.externalAdReply, undefined);
+test('chaque réponse texte reçoit bouton chaîne (JID courant), aperçu intégré et fausse citation', async () => {
+    displayFlags.override('previewImage', true);
+    channel._reset({ jid: NEW_JID, name: 'NEXO' });
+    const { sock, sent } = makeSock();
+    await sock.sendMessage(GROUP, { text: 'bonjour', contextInfo: { forwardedNewsletterMessageInfo: { newsletterJid: OLD_JID } } });
+    const { contextInfo } = sent[0].content;
+    assert.equal(contextInfo.forwardedNewsletterMessageInfo.newsletterJid, NEW_JID);
+    assert.equal(contextInfo.isForwarded, true);
+    const ad = contextInfo.externalAdReply;
+    assert.ok(ad, 'aperçu présent');
+    assert.ok(Buffer.isBuffer(ad.thumbnail) && ad.thumbnail.length > 0 && ad.thumbnail.length <= presentation.THUMB_MAX_BYTES);
+    assert.equal(ad.thumbnailUrl, undefined, 'aucun lien distant à télécharger côté membre');
+    assert.equal(ad.mediaUrl, undefined);
+    assert.equal(ad.sourceUrl, channel.link());
+    assert.ok(sent[0].options && sent[0].options.quoted, 'fausse citation');
+    displayFlags.override('previewImage', false);
+});
+
+test('un aperçu fourni par une commande perd son lien distant', async () => {
+    displayFlags.override('previewImage', true);
+    channel._reset({ jid: NEW_JID });
+    const { sock, sent } = makeSock();
+    await sock.sendMessage(GROUP, { text: 'x', contextInfo: { externalAdReply: { title: 'Perso', thumbnailUrl: 'https://files.catbox.moe/a.jpg', mediaUrl: 'https://x.test' } } });
+    const ad = sent[0].content.contextInfo.externalAdReply;
+    assert.equal(ad.title, 'Perso');
+    assert.equal(ad.thumbnailUrl, undefined);
+    assert.equal(ad.mediaUrl, undefined);
+    assert.ok(ad.thumbnail);
+    displayFlags.override('previewImage', false);
+});
+
+test('.preview off retire l\'aperçu mais garde chaîne et citation', async () => {
+    channel._reset({ jid: NEW_JID });
+    displayFlags.override('previewImage', false);
+    const { sock, sent } = makeSock();
+    await sock.sendMessage(GROUP, { text: 'x' });
+    assert.equal(sent[0].content.contextInfo.externalAdReply, undefined);
+    assert.equal(sent[0].content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid, NEW_JID);
+    assert.ok(sent[0].options.quoted);
+});
+
+test('réactions, statuts et chaînes ne sont jamais décorés', async () => {
+    const { sock, sent } = makeSock();
+    await sock.sendMessage(GROUP, { react: { text: '✅', key: {} } });
+    await sock.sendMessage('status@broadcast', { text: 'x' });
+    assert.equal(sent[0].content.contextInfo, undefined);
+    assert.equal(sent[1].content.contextInfo, undefined);
+});
+
+test('les anciens boutons WhatsApp sont retirés (messages invisibles sur beaucoup de téléphones)', async () => {
+    const { sock, sent } = makeSock();
+    await sock.sendMessage(GROUP, { text: 'x', buttons: [{ buttonId: '1' }], headerType: 1 });
+    assert.equal(sent[0].content.buttons, undefined);
+});
+
+test('la rotation d\'images ne répète jamais la même image deux fois de suite', () => {
+    const items = ['a', 'b', 'c', 'd'];
+    const rotator = presentation.createRotator(items);
+    let previous = null;
+    for (let i = 0; i < 200; i += 1) {
+        const value = rotator.next();
+        assert.notEqual(value, previous);
+        previous = value;
     }
 });
 
-test('réactions, suppressions, sondages, statuts et chaînes ne sont pas modifiés', () => {
-    const reaction = { react: { text: '👍', key: {} } };
-    assert.equal(presentation.decorate(GROUP, reaction), reaction);
-    const deletion = { delete: {} };
-    assert.equal(presentation.decorate(GROUP, deletion), deletion);
-    const poll = { poll: { name: 'q', values: ['a', 'b'] } };
-    assert.equal(presentation.decorate(GROUP, poll), poll);
-    const text = { text: 'hello' };
-    assert.equal(presentation.decorate('status@broadcast', text), text);
-    assert.equal(presentation.decorate('120363@newsletter', text), text);
+test('toutes les images du dossier donnent une miniature légère', async () => {
+    for (const file of presentation.localImages()) {
+        const thumb = await presentation.loadThumbnail(file);
+        assert.ok(thumb.length <= presentation.THUMB_MAX_BYTES, `${file} : ${thumb.length} octets`);
+    }
 });
 
-test('wrapSocket enveloppe sendMessage une seule fois et transmet les options (citation remplacée par la carte)', async () => {
+test('mode vraie image : la réponse part comme photo + légende encadrée', async () => {
+    channel._reset({ jid: NEW_JID });
+    displayFlags.override('imageReply', true);
+    try {
+        const { sock, sent } = makeSock();
+        await sock.sendMessage(GROUP, { text: 'bonjour' });
+        const content = sent[0].content;
+        assert.ok(Buffer.isBuffer(content.image) && content.image.length > 1000);
+        assert.equal(content.text, undefined);
+        assert.match(content.caption, /✦『 🤖 .+ 』✦/);
+        assert.match(content.caption, /\n  bonjour\n/);
+        assert.equal(content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid, NEW_JID);
+        assert.ok(sent[0].options.quoted);
+    } finally {
+        displayFlags.override('imageReply', false);
+    }
+});
+
+test('mode vraie image : un texte trop long reste un texte (légende limitée)', async () => {
+    displayFlags.override('imageReply', true);
+    try {
+        const { sock, sent } = makeSock();
+        await sock.sendMessage(GROUP, { text: 'x'.repeat(1500) });
+        assert.equal(sent[0].content.image, undefined);
+        assert.equal(typeof sent[0].content.text, 'string');
+    } finally {
+        displayFlags.override('imageReply', false);
+    }
+});
+
+test('cadre automatique : texte brut encadré, texte déjà mis en forme / à copier / conversationnel intact', async () => {
+    const { sock, sent } = makeSock();
+    await sock.sendMessage(GROUP, { text: '❌ Erreur\nRéessayez.' });
+    await sock.sendMessage(GROUP, { text: '✦『 DÉJÀ 』✦\n  ◇ ok → oui\n  ✦ ──────────────── ✦' });
+    await sock.sendMessage(GROUP, { text: '```secret```' });
+    await sock.sendMessage(GROUP, { text: 'réponse IA', __plain: true });
+    assert.match(sent[0].content.text, /^✦『 🤖 .+ 』✦\n  ❌ Erreur\n  Réessayez\.\n  ✦ ─+ ✦$/);
+    assert.equal(sent[1].content.text, '✦『 DÉJÀ 』✦\n  ◇ ok → oui\n  ✦ ──────────────── ✦');
+    assert.equal(sent[2].content.text, '```secret```');
+    assert.equal(sent[3].content.text, 'réponse IA');
+    assert.equal(sent[3].content.__plain, undefined);
+});
+
+test('les anciens cadres (┃⌬┃, ╭━⌜…⌟) sont convertis dans le design unique', async () => {
+    const { sock, sent } = makeSock();
+    await sock.sendMessage(GROUP, { text: '╭━━━━⌜SUDO⌟\n┃⌬┃ 👑 Gestion\n┃⌬┃\n┃⌬┃ ➕ ajouter\n╰━━━━━━━━❍' });
+    assert.equal(sent[0].content.text, '✦『 SUDO 』✦\n  👑 Gestion\n\n  ➕ ajouter\n  ✦ ──────────────── ✦');
+});
+
+test('filet de sécurité : si l\'image est refusée (ex. groupe), la réponse repart en texte', async () => {
+    displayFlags.override('imageReply', true);
     const calls = [];
-    const sock = { sendMessage: async (jid, content, options) => { calls.push({ jid, content, options }); return 'ok'; } };
-    presentation.wrapSocket(sock);
-    const wrapped = sock.sendMessage;
-    presentation.wrapSocket(sock);
-    assert.equal(sock.sendMessage, wrapped);
-
-    const quoted = { key: { id: 'A' } };
-    assert.equal(await sock.sendMessage(GROUP, { text: 'Opération terminée, Monsieur.' }, { quoted }), 'ok');
-    assert.equal(calls.length, 1);
-    // La citation d'origine est remplacée par la fausse citation « WhatsApp ✓ • Statut » (lib/quoteCard.js).
-    assert.ok(calls[0].options.quoted.message.imageMessage);
-    assert.match(calls[0].options.quoted.message.imageMessage.caption, /Commande : automatique|Commande : /);
-    assert.ok(calls[0].content.contextInfo.externalAdReply);
+    const sock = presentation.wrapSocket({
+        user: { id: '1:1@s.whatsapp.net' },
+        sendMessage: async (jid, content, options) => {
+            calls.push(content);
+            if (content.image) throw new Error('upload refusé');
+            return { key: { id: 'OK', remoteJid: jid, fromMe: true }, message: {} };
+        }
+    });
+    try {
+        const result = await sock.sendMessage(GROUP, { text: 'ping' });
+        assert.equal(result.key.id, 'OK');
+        assert.equal(calls.length, 2);
+        assert.equal(calls[1].image, undefined);
+        assert.match(calls[1].text, /ping/);
+        assert.equal(calls[1].contextInfo.externalAdReply, undefined);
+    } finally {
+        displayFlags.override('imageReply', false);
+    }
 });
 
-test('decorateContextInfo ajoute le bouton chaîne sans perdre le contexte', () => {
-    const ctx = presentation.decorateContextInfo({ mentionedJid: ['1@s.whatsapp.net'] });
-    assert.deepEqual(ctx.mentionedJid, ['1@s.whatsapp.net']);
-    assert.ok(ctx.forwardedNewsletterMessageInfo.newsletterJid);
+test('par défaut : AUCUN aperçu (externalAdReply), même si une commande en fournit un', async () => {
+    channel._reset({ jid: NEW_JID });
+    const { sock, sent } = makeSock();
+    await sock.sendMessage(GROUP, { text: 'x', contextInfo: { externalAdReply: { title: 'Perso', thumbnailUrl: 'https://x.test/a.jpg' } } });
+    assert.equal(sent[0].content.contextInfo.externalAdReply, undefined);
+    assert.equal(sent[0].content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid, NEW_JID);
+    assert.equal(presentation.decorateContextInfo({ externalAdReply: { title: 'x' } }).externalAdReply, undefined);
 });
 
-/* ─── .song : lecture des réponses d'API ─── */
-
-test('findDownloadUrl trouve le lien dans des formats d\'API variés', () => {
-    const find = song.findDownloadUrl;
-    assert.equal(find({ downloadUrl: 'https://cdn.test/a.mp3' }), 'https://cdn.test/a.mp3');
-    assert.equal(find({ status: true, result: { download: { url: 'https://cdn.test/b.mp3' } } }), 'https://cdn.test/b.mp3');
-    assert.equal(find({ data: { title: 'T', dl: 'https://cdn.test/c.mp3' } }), 'https://cdn.test/c.mp3');
-    assert.equal(find({ result: [{ url: 'https://cdn.test/d.mp3' }] }), 'https://cdn.test/d.mp3');
+test('clés de groupe : réinitialisées au premier envoi puis au plus une fois par heure', async () => {
+    const writes = [];
+    const sock = presentation.wrapSocket({
+        user: { id: '243822993775:5@s.whatsapp.net' },
+        authState: { keys: { set: async (data) => { writes.push(data); } } },
+        sendMessage: async (jid) => ({ key: { id: 'X', remoteJid: jid, fromMe: true }, message: {} }),
+        relayMessage: async () => ({})
+    });
+    await sock.sendMessage('777@g.us', { text: 'a' });
+    await sock.sendMessage('777@g.us', { text: 'b' });
+    await sock.sendMessage('888@g.us', { text: 'c' });
+    await sock.sendMessage('243900000000@s.whatsapp.net', { text: 'privé : jamais' });
+    assert.deepEqual(writes, [{ 'sender-key-memory': { '777@g.us': null } }, { 'sender-key-memory': { '888@g.us': null } }]);
+    assert.equal(await presentation.healSenderKeys(sock, '777@g.us', { force: true }), true);
+    assert.equal(writes.length, 3);
 });
 
-test('findDownloadUrl ignore les liens YouTube et les miniatures', () => {
-    const find = song.findDownloadUrl;
-    assert.equal(find({ url: 'https://www.youtube.com/watch?v=abc' }), null);
-    assert.equal(find({ thumbnail: 'https://i.ytimg.com/vi/x/hq.jpg' }), null);
-    assert.equal(find({ thumbnail: 'https://img.test/t.jpg', url: 'https://cdn.test/e.mp3' }), 'https://cdn.test/e.mp3');
-    assert.equal(find({ message: 'erreur' }), null);
-});
-
-test('detectFormat reconnaît mp3, m4a, ogg et wav', () => {
-    const d = song.detectFormat;
-    assert.equal(d(Buffer.from('ID3\x03\x00\x00\x00\x00\x00\x00')).ext, 'mp3');
-    assert.equal(d(Buffer.from([0xFF, 0xFB, 0x90, 0x00, 0, 0, 0, 0])).ext, 'mp3');
-    assert.equal(d(Buffer.from('\x00\x00\x00\x20ftypM4A ')).ext, 'm4a');
-    assert.equal(d(Buffer.from('OggS\x00\x02\x00\x00')).ext, 'ogg');
-    assert.equal(d(Buffer.from('RIFF\x00\x00\x00\x00WAVE')).ext, 'wav');
+test('vers une chaîne (@newsletter) : le message part tel quel, sans citation, transfert, aperçu ni traduction', async () => {
+    const { sock, sent } = makeSock();
+    await sock.sendMessage('120363555555555555@newsletter', { text: 'Publication propre' });
+    assert.deepEqual(sent[0].content, { text: 'Publication propre' });
+    assert.equal(sent[0].options, undefined);
 });

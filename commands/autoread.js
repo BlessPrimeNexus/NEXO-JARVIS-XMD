@@ -22,16 +22,16 @@ function initConfig() {
 async function autoreadCommand(sock, chatId, message) {
     try {
         const senderId = message.key.participant || message.key.remoteJid;
-        const isOwner = await isOwnerOrSudo(senderId, sock, chatId);
+        const isOwner = await require('../lib/ownerAuth').isOwnerOrSudoMessage(sock, message, chatId);
         
-        if (!message.key.fromMe && !isOwner) {
+        if (!isOwner) {
             await sock.sendMessage(chatId, {
                 text: '❌ Accès réservé au propriétaire du système, Monsieur.',
                 contextInfo: {
                     forwardingScore: 1,
                     isForwarded: true,
                     forwardedNewsletterMessageInfo: {
-                        newsletterJid: '120363426264191950@newsletter',
+                        newsletterJid: (require('../lib/channel').jid() || undefined),
                         newsletterName: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
                         serverMessageId: -1
                     }
@@ -62,7 +62,7 @@ async function autoreadCommand(sock, chatId, message) {
                         forwardingScore: 1,
                         isForwarded: true,
                         forwardedNewsletterMessageInfo: {
-                            newsletterJid: '120363426264191950@newsletter',
+                            newsletterJid: (require('../lib/channel').jid() || undefined),
                             newsletterName: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
                             serverMessageId: -1
                         }
@@ -85,7 +85,7 @@ async function autoreadCommand(sock, chatId, message) {
                 forwardingScore: 1,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363426264191950@newsletter',
+                    newsletterJid: (require('../lib/channel').jid() || undefined),
                     newsletterName: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
                     serverMessageId: -1
                 }
@@ -100,7 +100,7 @@ async function autoreadCommand(sock, chatId, message) {
                 forwardingScore: 1,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363426264191950@newsletter',
+                    newsletterJid: (require('../lib/channel').jid() || undefined),
                     newsletterName: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
                     serverMessageId: -1
                 }

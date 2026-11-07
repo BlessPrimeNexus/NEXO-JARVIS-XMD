@@ -36,7 +36,7 @@ async function stickercropCommand(sock, chatId, message) {
                 forwardingScore: 999,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363426264191950@newsletter',
+                    newsletterJid: (require('../lib/channel').jid() || undefined),
                     newsletterName: 'NEXO-JARVIS XMD',
                     serverMessageId: -1
                 }
@@ -58,7 +58,7 @@ async function stickercropCommand(sock, chatId, message) {
                     forwardingScore: 999,
                     isForwarded: true,
                     forwardedNewsletterMessageInfo: {
-                        newsletterJid: '120363426264191950@newsletter',
+                        newsletterJid: (require('../lib/channel').jid() || undefined),
                         newsletterName: 'NEXO-JARVIS XMD',
                         serverMessageId: -1
                     }
@@ -186,7 +186,7 @@ async function stickercropCommand(sock, chatId, message) {
                 forwardingScore: 999,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363426264191950@newsletter',
+                    newsletterJid: (require('../lib/channel').jid() || undefined),
                     newsletterName: 'NEXO-JARVIS XMD',
                     serverMessageId: -1
                 }

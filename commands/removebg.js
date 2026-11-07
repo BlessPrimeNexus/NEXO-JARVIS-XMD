@@ -31,8 +31,8 @@ module.exports = {
     category: 'general',
     desc: 'Supprime l\'arrière-plan des images',
     async exec(sock, message, args) {
+        const chatId = message.key.remoteJid;
         try {
-            const chatId = message.key.remoteJid;
             let imageUrl = null;
             
             // Check if args contain a URL

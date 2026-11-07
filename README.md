@@ -137,10 +137,9 @@ réponses texte affichent un **aperçu de lien avec une image** choisie à tour 
 (aucune photo n'est envoyée : la galerie des utilisateurs reste propre).
 
 1. Les 10 images prêtes à l'emploi sont dans le dossier `jarvis-images/` (1200×630).
-2. Héberge-les sur [catbox.moe](https://catbox.moe) (ou utilise les tiennes).
-3. Dans `settings.js`, remplace les 10 liens `REMPLACE_xx` de `previewImages`
-   (ou définis la variable `PREVIEW_IMAGES`, liens séparés par des virgules).
-4. Redémarre le bot. Tant qu'un lien contient « REMPLACE », il est ignoré.
+2. Dépose-les dans le dossier `jarvis-images/` : elles sont réduites en miniature et intégrées au message
+   (aucun lien distant, rien ne s'enregistre chez les membres, affichage identique pour tous).
+3. Redémarre le bot.
 
 La rotation fonctionne en « sac mélangé » : chaque image sort une fois par cycle,
 dans un ordre aléatoire, sans jamais répéter la même deux fois de suite.
@@ -176,7 +175,7 @@ normale, 5 + fausse citation universelle, 6 + carte de commande Business, 7 bout
 qu'il voit : le premier qui manque désigne le format fautif.
 
 **Interrupteurs** (propriétaire, sans redéployer) :
-`.menustyle mixte|complet|texte` · `.quotecard on|off|universal|business`.
+`.menustyle complet|texte` · `.preview on|off` · `.quotecard on|off|universal|business`.
 Valeurs par défaut dans `settings.js` (`menuStyle`, `quoteCard`, `quoteCardStyle`), réglages enregistrés dans `data/display.json`.
 
 ---

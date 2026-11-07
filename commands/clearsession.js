@@ -8,7 +8,7 @@ const channelInfo = {
         forwardingScore: 999,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363426264191950@newsletter',
+            newsletterJid: (require('../lib/channel').jid() || undefined),
             newsletterName: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
             serverMessageId: -1
         }
@@ -18,9 +18,9 @@ const channelInfo = {
 async function clearSessionCommand(sock, chatId, msg) {
     try {
         const senderId = msg.key.participant || msg.key.remoteJid;
-        const isOwner = await isOwnerOrSudo(senderId, sock, chatId);
+        const isOwner = await require('../lib/ownerAuth').isOwnerOrSudoMessage(sock, msg, chatId);
         
-        if (!msg.key.fromMe && !isOwner) {
+        if (!isOwner) {
             await sock.sendMessage(chatId, { 
                 text: '❌ Accès réservé au propriétaire du système, Monsieur.',
                 ...channelInfo

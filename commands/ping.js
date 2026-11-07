@@ -1,6 +1,7 @@
 'use strict';
 const os = require('os');
 const { channelInfo } = require('../lib/messageConfig');
+const { panel, report } = require('../lib/style');
 
 function uptime(sec) {
   const d = Math.floor(sec / 86400);
@@ -22,28 +23,20 @@ async function pingCommand(sock, chatId, message) {
     const ramPercent = ((memory.rss / os.totalmem()) * 100).toFixed(1);
     const up = uptime(Math.floor(process.uptime()));
     const load = os.loadavg?.()[0]?.toFixed(2) || 'N/A';
-    const quality = ping < 300 ? 'EXCELLENT' : ping < 800 ? 'STABLE' : 'SLOW';
+    const quality = ping < 300 ? 'EXCELLENT' : ping < 800 ? 'STABLE' : 'LENT';
 
     await sock.sendMessage(chatId, {
-      text:
-        `╭─〔 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 〕─╮\n` +
-        `│ ⚡ *DIAGNOSTIC SYSTÈME*\n` +
-        `│\n` +
-        `│ 🏓 Latence     : *${ping} ms*\n` +
-        `│ 🚀 État        : *${quality}*\n` +
-        `│ ⏱️ Disponible  : *${up}*\n` +
-        `│ 💾 Mémoire     : *${ram} MB* / ${totalRam} GB (${ramPercent}%)\n` +
-        `│ 📊 Charge      : *${load}*\n` +
-        `│ ⚙️ Moteur      : *Node ${process.version.replace('v', '')}*\n` +
-        `╰──────────────────╯\n` +
-        `> Tous les systèmes répondent normalement, Monsieur.`,
+      text: report('⚡ Diagnostic système', [['Latence', `${ping} ms`], ['État', quality]], [
+        { title: '⏱️ Activité', rows: [['🕒 Disponible', up], ['📊 Charge', load]] },
+        { title: '💾 Ressources', rows: [['🧠 Heap', `${ram} Mo`], ['🖥️ RAM serveur', `${totalRam} Go (${ramPercent} %)`], ['⚙️ Moteur', `Node ${process.version.replace('v', '')}`]] }
+      ], 'Tous les systèmes répondent normalement, Monsieur.'),
       ...channelInfo,
     }, { quoted: message });
 
   } catch (err) {
-    console.error('[ping] error:', err.message);
+    console.error('[ping] erreur :', err && err.stack || err);
     await sock.sendMessage(chatId, {
-      text: '╭─〔 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 〕─╮\n│ ❌ Diagnostic impossible pour le moment.\n╰──────────────────╯',
+      text: panel('⚡ DIAGNOSTIC SYSTÈME', ['❌ Diagnostic impossible pour le moment.']),
       ...channelInfo,
     }, { quoted: message });
   }

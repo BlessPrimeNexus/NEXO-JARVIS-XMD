@@ -18,11 +18,11 @@ module.exports = async function (sock, chatId, message, city) {
             if (!current) throw new Error('Weather provider returned no data');
             weather = {
                 name: city,
-                weather: [{ description: current.weatherDesc?.[0]?.value || 'unknown' }],
+                weather: [{ description: current.weatherDesc?.[0]?.value || 'inconnues' }],
                 main: { temp: current.temp_C }
             };
         }
-        const weatherText = `Weather in ${weather.name}: ${weather.weather[0].description}. Temperature: ${weather.main.temp}°C.`;
+        const weatherText = `🌦️ *Météo — ${weather.name}*\n\n☁️ Conditions : ${weather.weather[0].description}\n🌡️ Température : ${weather.main.temp}°C`;
         await sock.sendMessage(chatId, { text: weatherText }, { quoted: message }   );
     } catch (error) {
         console.error('Error fetching weather:', error);

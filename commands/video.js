@@ -61,6 +61,26 @@ async function getOkatsuVideoByUrl(youtubeUrl) {
     throw new Error('Okatsu ytmp4 returned no mp4');
 }
 
+// yt-dlp d'abord (client tv, autres clients, cookies si fournis) ; une source en échec répété est mise de côté (downloadHealth).
+async function fetchVideoWithYtdlp(videoUrl) {
+    const ytdlp = require('../lib/ytdlp');
+    const health = require('../lib/downloadHealth');
+    for (const client of ytdlp.clientsFor(Boolean(ytdlp.cookiesPath()))) {
+        const name = `yt-dlp vidéo (${client})`;
+        if (!health.usable(name)) continue;
+        const started = Date.now();
+        try {
+            const result = await ytdlp.downloadMedia(videoUrl, { kind: 'video', client, timeout: 110000 });
+            health.ok(name, Date.now() - started);
+            return result;
+        } catch (error) {
+            health.fail(name, ytdlp.explain(error), Date.now() - started);
+            console.warn(`[VIDEO] ${name} : échec — ${ytdlp.explain(error)}`);
+        }
+    }
+    return null;
+}
+
 async function videoCommand(sock, chatId, message) {
     try {
         const searchQuery = commandInput(message);
@@ -81,7 +101,7 @@ async function videoCommand(sock, chatId, message) {
             // Search YouTube for the video
             const { videos } = await yts(searchQuery);
             if (!videos || videos.length === 0) {
-                await sock.sendMessage(chatId, { text: 'No videos found!' }, { quoted: message });
+                await sock.sendMessage(chatId, { text: '❌ Aucune vidéo trouvée, Monsieur.' }, { quoted: message });
                 return;
             }
             videoUrl = videos[0].url;
@@ -107,7 +127,18 @@ async function videoCommand(sock, chatId, message) {
             return;
         }
 
-        // Try multiple APIs with fallback chain: EliteProTech -> Yupra -> Okatsu
+        const local = await fetchVideoWithYtdlp(videoUrl);
+        if (local) {
+            await sock.sendMessage(chatId, {
+                video: local.buffer,
+                mimetype: 'video/mp4',
+                fileName: `${safeFileName(local.title || videoTitle, 'video')}.mp4`,
+                caption: `*${local.title || videoTitle || 'Vidéo'}*\n\n> *_Téléchargé par NEXO-JARVIS XMD_*`
+            }, { quoted: message });
+            return;
+        }
+
+        // Repli : API gratuites (EliteProTech -> Yupra -> Okatsu)
         let videoData;
         let downloadSuccess = false;
         
@@ -163,7 +194,7 @@ async function videoCommand(sock, chatId, message) {
         } else if (error.message && error.message.includes('All download sources failed')) {
             errorMessage = '❌ Toutes les sources de téléchargement ont échoué. Ce contenu est peut-être indisponible ou bloqué.';
         } else if (error.message) {
-            errorMessage = '❌ Download failed: ' + error.message;
+            errorMessage = '❌ Le téléchargement a échoué : ' + error.message;
         }
         
         await sock.sendMessage(chatId, { 

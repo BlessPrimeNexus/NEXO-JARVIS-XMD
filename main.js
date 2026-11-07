@@ -29,23 +29,34 @@ const settings = require('./settings');
 require('./config.js');
 const { isBanned } = require('./lib/isBanned');
 const yts = require('yt-search');
-const { fetchBuffer } = require('./lib/myfunc');
 const fetch = require('node-fetch');
 const ytdl = require('ytdl-core');
 const axios = require('axios');
 const ffmpeg = require('fluent-ffmpeg');
 const { isSudo } = require('./lib/index');
 const isOwnerOrSudo = require('./lib/isOwner');
+const ownerAuth = require('./lib/ownerAuth');
 const { autotypingCommand, isAutotypingEnabled, handleAutotypingForMessage, handleAutotypingForCommand, showTypingAfterCommand } = require('./commands/autotyping');
 const { autoreadCommand, isAutoreadEnabled, handleAutoread } = require('./commands/autoread');
 
 // Command imports
 const tagAllCommand = require('./commands/tagall');
 const helpCommand = require('./commands/help');
+const sessionsCommand = require('./commands/sessions');
+const idchCommand = require('./commands/idch');
+const addStatutCommand = require('./commands/addstatut');
+const fixGroupCommand = require('./commands/fixgroup');
+const dlTestCommand = require('./commands/dltest');
+const { panelCommand } = require('./commands/panel');
+const { utilsCommand, UTILS_COMMANDS } = require('./commands/utils');
+const gifCommand = require('./commands/gif');
 const pairCommand = require('./commands/pair');
 const displayCommand = require('./commands/display');
 const viewTestCommand = require('./commands/viewtest');
 const { selectedInteractiveId, isInteractiveResponse } = require('./lib/interactiveReply');
+const buttonRegistry = require('./lib/buttonRegistry');
+const actionsLib = require('./lib/actions');
+const extraCommands = require('./lib/extraCommands');
 const banCommand = require('./commands/ban');
 const { promoteCommand } = require('./commands/promote');
 const { demoteCommand } = require('./commands/demote');
@@ -152,7 +163,8 @@ const settingsCommand = require('./commands/settings');
 const statsCommand = require('./commands/stats');
 const { isCommandEnabled } = require('./lib/sessionSettings');
 const soraCommand = require('./commands/sora');
-const { antibotCommand, isAntibotEnabled } = require('./commands/antibot');
+const { antibotCommand, isAntibotEnabled, handleAntibot } = require('./commands/antibot');
+const antibotEngine = require('./lib/antibot');
 const { promoteTimeCommand } = require('./commands/promotetime');
 const { kickTimeCommand } = require('./commands/kicktime');
 const { deleteAllCommand } = require('./commands/deleteall');
@@ -175,19 +187,9 @@ global.author = settings.author;
 global.ytch = "";
 
 // Add this near the top of main.js with other global configurations
-const channelInfo = {
-    contextInfo: {
-        forwardingScore: 1,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363426264191950@newsletter',
-            newsletterName: '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗',
-            serverMessageId: -1
-        }
-    }
-};
+const { channelInfo } = require('./lib/messageConfig'); // JID de la chaîne résolu automatiquement (lib/channel.js)
 const SESSION_EXEMPT_COMMANDS = new Set([
-    '.settings', '.stats', '.menu', '.help', '.allmenu', '.list', '.bot'
+    '.settings', '.stats', '.sessions', '.session', '.delsession', '.menu', '.help', '.allmenu', '.list', '.bot'
 ]);
 
 function readBotMode() {
@@ -247,10 +249,11 @@ function unwrapMessageContent(content) {
         const senderId = message.key.participant || message.key.remoteJid;
         const isGroup = chatId.endsWith('@g.us');
         const senderIsSudo = await isSudo(senderId);
-        const senderIsPrimaryOwner = typeof isOwnerOrSudo.isPrimaryOwner === 'function'
-            ? await isOwnerOrSudo.isPrimaryOwner(senderId, sock, chatId)
-            : false;
-        const senderIsOwnerOrSudo = await isOwnerOrSudo(senderId, sock, chatId);
+        // Contrôle propriétaire STRICT (lib/ownerAuth.js) : numéros listés dans settings.ownerNumbers, LID traduits,
+        // et un message envoyé depuis une autre session connectée ne vaut jamais « propriétaire ».
+        const senderIsPrimaryOwner = await ownerAuth.isOwnerMessage(sock, message, chatId);
+        const senderIsOwnerOrSudo = await ownerAuth.isOwnerOrSudoMessage(sock, message, chatId);
+        if (isGroup) require('./lib/messageLog').record(chatId, message);   // journal des messages vus (pour .del)
         const configuredOwner = String(settings.ownerNumber || '').replace(/\D/g, '');
         const senderNumbers = [senderId, message.key.participantAlt, message.key.remoteJid].filter(Boolean).map(value => String(value).split('@')[0].split(':')[0].replace(/\D/g, ''));
         const botNumberForOwner = String(sock.user?.id || '').split(':')[0].split('@')[0].replace(/\D/g, '');
@@ -267,11 +270,18 @@ function unwrapMessageContent(content) {
         }
 
 
-        // Vérification antibot : bloquer les autres bots dans le groupe
-        if (isGroup && isAntibotEnabled(chatId)) {
-            const isBot = senderId.includes(':') && senderId.includes('@s.whatsapp.net') && !message.key.fromMe && !senderIsOwnerOrSudo;
-            if (isBot) return; // Ignorer silencieusement les messages des autres bots
+        // Antibot : détecte les messages des autres bots (ID Baileys, boutons natifs, aperçu pub, bots appris),
+        // les supprime (ou retire le bot selon .antibot mode) et s'arrête : aucune autre fonction ne leur répond.
+        if (isGroup && !message.key.fromMe) {
+            try {
+                if (await handleAntibot(sock, chatId, message, senderId, { senderIsOwnerOrSudo })) return;
+            } catch (error) {
+                console.error('[antibot] erreur :', error.message);
+            }
         }
+        // Message d'un AUTRE bot Baileys (ID « BAE5… ») : jamais traité comme une commande ni comme une discussion
+        // (évite les boucles bot ↔ bot). Les anciens filtres de botInstance.js les jetaient avant ce point.
+        if (antibotEngine.isForeignBaileysId(message)) return;
 
         // Native Flow clients return the selected action in paramsJson.
         // Decode it here so cta_copy remains useful even when WhatsApp sends a
@@ -286,7 +296,7 @@ function unwrapMessageContent(content) {
                     new URL(copiedUrl);
                     await sock.sendMessage(message.key.remoteJid, { text: copiedUrl }, { quoted: message });
                 } catch {
-                    await sock.sendMessage(message.key.remoteJid, { text: '❌ Le lien à copier est invalide.' }, { quoted: message });
+                    // Copie d'autre chose qu'un lien (ex. JID de .idch) : le téléphone l'a déjà copié, rien à répondre.
                 }
                 return;
             }
@@ -322,12 +332,12 @@ function unwrapMessageContent(content) {
                 return;
             } else if (buttonId === 'owner') {
                 const ownerCommand = require('./commands/owner');
-                await ownerCommand(sock, chatId);
+                await ownerCommand(sock, chatId, message);
                 return;
             }
         }
 
-        const rawText = (
+        const rawTextFromMessage = (
             message.message?.conversation?.trim() ||
             message.message?.extendedTextMessage?.text?.trim() ||
             message.message?.imageMessage?.caption?.trim() ||
@@ -336,6 +346,18 @@ function unwrapMessageContent(content) {
             selectedInteractiveId(message, (title) => helpCommand.resolveMenuChoice?.(title, getPrefix(chatId))) ||
             ''
         );
+        // Certains téléphones n'envoient que le TEXTE du bouton touché (« 🔄 Actualiser »), sans la commande :
+        // on la retrouve grâce au registre des boutons envoyés (ou aux boutons fixes connus d'avance).
+        let rawText = rawTextFromMessage;
+        const clickedCommand = !rawTextFromMessage.startsWith(getPrefix(chatId))
+            ? buttonRegistry.resolve(message, chatId) : '';
+        if (clickedCommand) {
+            const prefix = getPrefix(chatId);
+            rawText = clickedCommand.startsWith('.') ? `${prefix}${clickedCommand.slice(1)}` : clickedCommand;
+            console.log(`[bouton] « ${rawTextFromMessage || 'texte seul'} » → ${rawText}`);
+        } else if (isInteractiveResponse(message) && !rawTextFromMessage) {
+            console.log('[bouton] réponse de bouton non reconnue :', JSON.stringify(message.message).slice(0, 400));
+        }
         // Owner-friendly diagnostic alias. It reports only the active scope
         // (this private chat or this group), never another user's chat data.
         if (/^>\s+prefixe?\s*$/i.test(rawText) && senderIsPrimaryOwner) {
@@ -349,6 +371,23 @@ function unwrapMessageContent(content) {
         // matched. A configured prefix fully replaces the default ".".
         const activePrefix = getPrefix(chatId);
         const userMessage = normalizeCommandText(rawText, activePrefix);
+
+        // Un clic sur un bouton / une ligne de liste n'arrive PAS comme un texte : beaucoup de commandes (welcome,
+        // goodbye, antilink set…) relisent leurs arguments dans message.message. On remplace donc la réponse de bouton
+        // par le texte de la commande choisie : elles voient exactement ce que la personne aurait tapé.
+        if (rawText && (isInteractiveResponse(message) || clickedCommand) && message.message) {
+            const original = message.message.interactiveResponseMessage?.contextInfo
+                || message.message.buttonsResponseMessage?.contextInfo
+                || message.message.listResponseMessage?.contextInfo
+                || message.message.templateButtonReplyMessage?.contextInfo
+                || {};
+            message.message = {
+                extendedTextMessage: {
+                    text: rawText,
+                    contextInfo: original.mentionedJid ? { mentionedJid: original.mentionedJid } : {}
+                }
+            };
+        }
         if (isInteractiveResponse(message)) {
             console.log(`[menu] Choix reçu depuis un bouton : « ${rawText || 'illisible'} »`);
         }
@@ -367,7 +406,7 @@ function unwrapMessageContent(content) {
         }
         // Read bot mode once. Private mode is a hard owner/sudo lock.
         const isPublic = readBotMode();
-        const isOwnerOrSudoCheck = message.key.fromMe || senderIsOwnerOrSudo;
+        const isOwnerOrSudoCheck = senderIsOwnerOrSudo;
         // Check if user is banned (skip ban check for unban command)
         if (isBanned(senderId) && !userMessage.startsWith('.unban')) {
             // Only respond occasionally to avoid spam
@@ -437,7 +476,7 @@ function unwrapMessageContent(content) {
         }
 
         // PM blocker: block non-owner DMs when activé (do not ban)
-        if (!isGroup && !message.key.fromMe && !senderIsSudo) {
+        if (!isGroup && !message.key.fromMe && !senderIsOwnerOrSudo) {
             try {
                 const pmState = readPmBlockerState();
                 if (pmState.activé) {
@@ -491,7 +530,9 @@ function unwrapMessageContent(content) {
         const isBotAdminRequired = botAdminCommands.some(commandMatches);
 
         // List of owner commands
-        const ownerCommands = ['.mode', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker', '.update'];
+        // Réservées au propriétaire (le contrôle central refuse tout autre expéditeur avant même d'exécuter la commande).
+        const STRICT_OWNER_ONLY = ['.dltest', '.panel', '.ram', '.gc', '.logs', '.disk', '.restart', '.config', '.owners', '.lang', '.sessions', '.session', '.delsession', '.sessionlist', '.listsessions', '.sudo', '.update', '.clearsession', '.settings', '.stats', '.viewtest', '.menustyle', '.imagemode', '.replystyle', '.preview', '.quotecard', '.mode', '.fakeract', '.channelalert'];
+        const ownerCommands = ['.mode', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker', '.update', ...STRICT_OWNER_ONLY];
         const isOwnerCommand = ownerCommands.some(commandMatches);
         const isChannelAlertCommand = commandMatches('.fakeract') || commandMatches('.channelalert');
 
@@ -540,8 +581,8 @@ function unwrapMessageContent(content) {
 
         // Check owner status for owner commands
         if (isOwnerCommand) {
-            if (!message.key.fromMe && !senderIsOwnerOrSudo) {
-                await sock.sendMessage(chatId, { text: '❌ Cette commande est réservée au numéro propriétaire configuré.' }, { quoted: message });
+            if (!senderIsPrimaryOwner && !(senderIsOwnerOrSudo && !STRICT_OWNER_ONLY.some(commandMatches))) {
+                await sock.sendMessage(chatId, { text: '⛔ Cette commande est réservée au propriétaire du bot.' }, { quoted: message });
                 return;
             }
         }
@@ -561,6 +602,15 @@ function unwrapMessageContent(content) {
         // commandes custom et les protections qui sortent plus tôt.
         const _cmdKey = userMessage.split(/\s+/)[0];
         addCommandReaction(sock, message, _cmdKey).catch(() => {});
+
+        // Boutons d'action : les commandes à plusieurs options (anti-*, welcome, mode, chatbot…) répondent avec
+        // un message à boutons natifs « ⚡ Actions » (lib/actions.js). Les autres commandes ne sont pas touchées.
+        {
+            const actionCommand = actionsLib.commandNameOf(userMessage);
+            if (actionsLib.specFor(actionCommand)) {
+                sock = actionsLib.wrapSock(sock, { chatId, message, command: actionCommand });
+            }
+        }
 
         // Custom sticker commands are checked before the large legacy switch.
         // This keeps setcmd extensible without adding generated case labels.
@@ -637,6 +687,16 @@ function unwrapMessageContent(content) {
             return;
         }
 
+        // Commandes complémentaires (économie, santé, cyber, notes, diffusion, apk, religion…).
+        if (customCommandName && extraCommands.has(customCommandName)) {
+            await extraCommands.run(customCommandName, {
+                sock, chatId, message, senderId, isOwner: senderIsOwnerOrSudo,
+                args: rawText.trim().split(/\s+/).slice(1)
+            });
+            sock.sendPresenceUpdate('paused', chatId).catch(() => {});
+            return;
+        }
+
         // ── Typing presence: "En train d'écrire…" while processing ──────────
         sock.sendPresenceUpdate('composing', chatId).catch(() => {});
 
@@ -689,7 +749,7 @@ function unwrapMessageContent(content) {
                 break;
             case userMessage.startsWith('.ban'):
                 if (!isGroup) {
-                    if (!message.key.fromMe && !senderIsSudo) {
+                    if (!senderIsOwnerOrSudo) {
                         await sock.sendMessage(chatId, { text: 'Réservé au propriétaire ou aux sudo en conversation privée, Monsieur.' }, { quoted: message });
                         break;
                     }
@@ -698,7 +758,7 @@ function unwrapMessageContent(content) {
                 break;
             case userMessage.startsWith('.unban'):
                 if (!isGroup) {
-                    if (!message.key.fromMe && !senderIsSudo) {
+                    if (!senderIsOwnerOrSudo) {
                         await sock.sendMessage(chatId, { text: 'Réservé au propriétaire ou aux sudo en conversation privée, Monsieur..' }, { quoted: message });
                         break;
                     }
@@ -725,7 +785,7 @@ function unwrapMessageContent(content) {
             case userMessage === '.deleteall':
                 await deleteAllCommand(sock, chatId, senderId, message);
                 break;
-            case userMessage.startsWith('.delete') || userMessage.startsWith('.del'):
+            case userMessage === '.del' || userMessage.startsWith('.del ') || userMessage === '.delete' || userMessage.startsWith('.delete '):
                 await deleteCommand(sock, chatId, message, senderId);
                 break;
             case userMessage.startsWith('.attp'):
@@ -736,12 +796,21 @@ function unwrapMessageContent(content) {
             case userMessage.startsWith('.settings '):
                 await settingsCommand(sock, chatId, message, userMessage.slice('.settings'.length).trim());
                 break;
+            case userMessage === '.sessions' || userMessage.startsWith('.sessions ') || userMessage === '.session' || userMessage.startsWith('.session ')
+                || userMessage === '.sessionlist' || userMessage === '.listsessions': {
+                const sessionArgs = userMessage.replace(/^\.(sessions|session|sessionlist|listsessions)\s*/, '');
+                await sessionsCommand(sock, chatId, message, sessionArgs);
+                break;
+            }
+            case userMessage.startsWith('.delsession'):
+                await sessionsCommand(sock, chatId, message, `remove ${userMessage.slice('.delsession'.length).trim()}`);
+                break;
             case userMessage === '.stats':
                 await statsCommand(sock, chatId, message);
                 break;
             case userMessage.startsWith('.mode'):
                 // Check if sender is the owner
-                if (!message.key.fromMe && !senderIsOwnerOrSudo) {
+                if (!senderIsOwnerOrSudo) {
                     await sock.sendMessage(chatId, {
                         text:
                             `╭─〔 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗔𝗖𝗖𝗘𝗦𝗦 〕─╮\n` +
@@ -826,7 +895,7 @@ function unwrapMessageContent(content) {
                 }
                 break;
             case userMessage.startsWith('.anticall'):
-                if (!message.key.fromMe && !senderIsOwnerOrSudo) {
+                if (!senderIsOwnerOrSudo) {
                     await sock.sendMessage(chatId, {
                         text: 'Accès réservé au propriétaire ou aux sudo, Monsieur.',
                         ...channelInfo
@@ -853,7 +922,7 @@ function unwrapMessageContent(content) {
                 commandExecuted = true;
                 break;
             case userMessage === '.owner':
-                await ownerCommand(sock, chatId);
+                await ownerCommand(sock, chatId, message);
                 break;
             case userMessage === '.tagall':
                 await tagAllCommand(sock, chatId, senderId, message);
@@ -924,7 +993,7 @@ function unwrapMessageContent(content) {
                 if (city) {
                     await weatherCommand(sock, chatId, message, city);
                 } else {
-                    await sock.sendMessage(chatId, { text: 'Please specify a city, e.g., .weather London', ...channelInfo }, { quoted: message });
+                    await sock.sendMessage(chatId, { text: '🌦️ Indiquez une ville, Monsieur. Exemple : *.weather Kinshasa*', ...channelInfo }, { quoted: message });
                 }
                 break;
             case userMessage === '.news':
@@ -939,32 +1008,32 @@ function unwrapMessageContent(content) {
                 if (isNaN(position)) {
                     await sock.sendMessage(chatId, { text: 'Indiquez un numéro de case valide pour le Morpion, Monsieur.', ...channelInfo }, { quoted: message });
                 } else {
-                    tictactoeMove(sock, chatId, senderId, position);
+                    await handleTicTacToeMove(sock, chatId, senderId, String(position));
                 }
                 break;
             case userMessage === '.topmembers':
-                topMembers(sock, chatId, isGroup);
+                await topMembers(sock, chatId, isGroup);
                 break;
             case userMessage.startsWith('.hangman'):
-                startHangman(sock, chatId);
+                await startHangman(sock, chatId);
                 break;
             case userMessage.startsWith('.guess'):
                 const guessedLetter = userMessage.split(' ')[1];
                 if (guessedLetter) {
-                    guessLetter(sock, chatId, guessedLetter);
+                    await guessLetter(sock, chatId, guessedLetter);
                 } else {
-                    sock.sendMessage(chatId, { text: 'Please guess a letter using .guess <letter>', ...channelInfo }, { quoted: message });
+                    await sock.sendMessage(chatId, { text: '🔤 Proposez une lettre avec *.guess <lettre>*, Monsieur.', ...channelInfo }, { quoted: message });
                 }
                 break;
             case userMessage.startsWith('.trivia'):
-                startTrivia(sock, chatId);
+                await startTrivia(sock, chatId);
                 break;
             case userMessage.startsWith('.answer'):
                 const answer = userMessage.split(' ').slice(1).join(' ');
                 if (answer) {
-                    answerTrivia(sock, chatId, answer);
+                    await answerTrivia(sock, chatId, answer);
                 } else {
-                    sock.sendMessage(chatId, { text: 'Indiquez votre réponse avec .answer <réponse>', ...channelInfo }, { quoted: message });
+                    await sock.sendMessage(chatId, { text: 'Indiquez votre réponse avec .answer <réponse>', ...channelInfo }, { quoted: message });
                 }
                 break;
             case userMessage.startsWith('.compliment'):
@@ -1025,6 +1094,40 @@ function unwrapMessageContent(content) {
             case userMessage === '.menustyle' || userMessage.startsWith('.menustyle '):
                 await displayCommand(sock, chatId, message, 'menuStyle', userMessage.slice(10).trim(), isOwnerOrSudoCheck);
                 break;
+            case userMessage === '.imagemode' || userMessage.startsWith('.imagemode '):
+                await displayCommand(sock, chatId, message, 'imageReply', userMessage.slice(10).trim(), isOwnerOrSudoCheck);
+                break;
+            case userMessage === '.replystyle' || userMessage.startsWith('.replystyle '):
+                await displayCommand(sock, chatId, message, 'replyFrame', userMessage.slice(11).trim(), isOwnerOrSudoCheck);
+                break;
+            case userMessage === '.preview' || userMessage.startsWith('.preview '):
+                await displayCommand(sock, chatId, message, 'previewImage', userMessage.slice(8).trim(), isOwnerOrSudoCheck);
+                break;
+            case UTILS_COMMANDS.includes(userMessage.split(/\s+/)[0].slice(1)): {
+                const utilName = userMessage.split(/\s+/)[0].slice(1);
+                await utilsCommand(sock, chatId, message, utilName, userMessage);
+                break;
+            }
+            case userMessage === '.gif' || userMessage.startsWith('.gif '):
+                await gifCommand(sock, chatId, userMessage.slice(4).trim());
+                break;
+            case userMessage === '.addstatut' || userMessage.startsWith('.addstatut ')
+                || userMessage === '.gstatus' || userMessage.startsWith('.gstatus ')
+                || userMessage === '.statutgroupe' || userMessage.startsWith('.statutgroupe '):
+                await addStatutCommand(sock, chatId, message, rawText.trim().split(/\s+/).slice(1).join(' '));
+                break;
+            case /^\.(panel|ram|gc|logs|disk|restart|config|owners|lang)(\s|$)/.test(userMessage): {
+                const panelName = userMessage.slice(1).split(/\s+/)[0];
+                await panelCommand(sock, chatId, message, panelName, rawText.trim().split(/\s+/).slice(1).join(' '));
+                break;
+            }
+            case userMessage === '.fixgroup' || userMessage === '.fixgc' || userMessage === '.resync':
+                await fixGroupCommand(sock, chatId, message);
+                break;
+            case userMessage === '.idch' || userMessage.startsWith('.idch '):
+                // Le lien est sensible à la casse : on le lit dans le texte d'origine, pas dans la version en minuscules.
+                await idchCommand(sock, chatId, message, rawText.trim().split(/\s+/).slice(1).join(' '));
+                break;
             case userMessage === '.quotecard' || userMessage.startsWith('.quotecard '):
                 await displayCommand(sock, chatId, message, 'quoteCard', userMessage.slice(10).trim(), isOwnerOrSudoCheck);
                 break;
@@ -1040,13 +1143,13 @@ function unwrapMessageContent(content) {
             case userMessage.startsWith('.mention '):
                 {
                     const args = userMessage.split(' ').slice(1).join(' ');
-                    const isOwner = message.key.fromMe || senderIsSudo;
+                    const isOwner = senderIsOwnerOrSudo;
                     await mentionToggleCommand(sock, chatId, message, args, isOwner);
                 }
                 break;
             case userMessage === '.setmention':
                 {
-                    const isOwner = message.key.fromMe || senderIsSudo;
+                    const isOwner = senderIsOwnerOrSudo;
                     await setMentionCommand(sock, chatId, message, isOwner);
                 }
                 break;
@@ -1156,7 +1259,7 @@ function unwrapMessageContent(content) {
             case userMessage.startsWith('.character'):
                 await characterCommand(sock, chatId, message);
                 break;
-            case userMessage.startsWith('.waste'):
+            case userMessage.startsWith('.wasted') || userMessage.startsWith('.waste'):
                 await wastedCommand(sock, chatId, message);
                 break;
             case userMessage === '.ship':
@@ -1331,7 +1434,7 @@ function unwrapMessageContent(content) {
             case userMessage.startsWith('.tiktok') || userMessage.startsWith('.tt'):
                 await tiktokCommand(sock, chatId, message);
                 break;
-            case userMessage.startsWith('.gpt') || userMessage.startsWith('.gemini'):
+            case userMessage.startsWith('.gpt') || userMessage.startsWith('.gemini') || userMessage === '.ai' || userMessage.startsWith('.ai '):
                 await aiCommand(sock, chatId, message);
                 break;
             case userMessage.startsWith('.translate') || userMessage.startsWith('.trt'):

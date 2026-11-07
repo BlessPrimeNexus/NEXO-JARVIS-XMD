@@ -20,7 +20,7 @@ function startHangman(sock, chatId) {
 
 function guessLetter(sock, chatId, letter) {
     if (!hangmanGames[chatId]) {
-        sock.sendMessage(chatId, { text: 'No game in progress. Start a new game with .hangman' });
+        sock.sendMessage(chatId, { text: '🎯 Aucune partie en cours. Lancez-en une avec *.hangman*, Monsieur.' });
         return;
     }
 
@@ -40,7 +40,7 @@ function guessLetter(sock, chatId, letter) {
                 maskedWord[i] = letter;
             }
         }
-        sock.sendMessage(chatId, { text: `Good guess! ${maskedWord.join(' ')}` });
+        sock.sendMessage(chatId, { text: `✅ Bonne lettre ! ${maskedWord.join(' ')}` });
 
         if (!maskedWord.includes('_')) {
             sock.sendMessage(chatId, { text: `Félicitations ! Vous avez trouvé le mot : ${word}` });

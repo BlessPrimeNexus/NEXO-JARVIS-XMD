@@ -364,7 +364,7 @@ async function handleChatbotResponse(sock, chatId, message, userMessage, senderI
     }
 
     await showTyping(sock, chatId);
-    await sock.sendMessage(chatId, { text: response }, { quoted: message });
+    await sock.sendMessage(chatId, { text: response, __plain: true }, { quoted: message });
 }
 
 module.exports = {

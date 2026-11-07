@@ -5,8 +5,9 @@ const axios  = require('axios');
 const fs     = require('fs');
 const path   = require('path');
 
-const NEWSLETTER_JID  = '120363426264191950@newsletter';
-const NEWSLETTER_NAME = '𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗';
+const channel = require('../lib/channel');
+const NEWSLETTER_JID  = channel.jid() || undefined;   // ré-appliqué à l'envoi par lib/presentation.js
+const NEWSLETTER_NAME = channel.name();
 
 const newsletterForward = {
     contextInfo: {

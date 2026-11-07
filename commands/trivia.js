@@ -19,7 +19,7 @@ async function startTrivia(sock, chatId) {
         };
 
         sock.sendMessage(chatId, {
-            text: `Trivia Time!\n\nQuestion: ${triviaGames[chatId].question}\nOptions:\n${triviaGames[chatId].options.join('\n')}`
+            text: `🧠 *QUIZ*\n\nQuestion : ${triviaGames[chatId].question}\nOptions :\n${triviaGames[chatId].options.join('\n')}`
         });
     } catch (error) {
         sock.sendMessage(chatId, { text: 'Impossible de récupérer une question pour le moment. Réessayez dans un instant.' });
@@ -28,7 +28,7 @@ async function startTrivia(sock, chatId) {
 
 function answerTrivia(sock, chatId, answer) {
     if (!triviaGames[chatId]) {
-        sock.sendMessage(chatId, { text: 'No trivia game is in progress.' });
+        sock.sendMessage(chatId, { text: '❓ Aucune question en cours. Lancez-en une avec *.trivia*, Monsieur.' });
         return;
     }
 

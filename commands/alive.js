@@ -1,20 +1,13 @@
 const settings = require('../settings');
+const { report } = require('../lib/style');
 
 async function aliveCommand(sock, chatId, message) {
     const sender = message.key.participant || message.key.remoteJid;
     const senderNumber = sender ? sender.split('@')[0] : 'User';
     try {
-        const aliveMsg = `
-╭━━━━⌜𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗⌟
-┃⌬╭━━━━━━━━━━━━━━━≽
-┃⌬┃ @${senderNumber}
-┃⌬┃✅️ Systèmes opérationnels. Je suis à votre disposition 🟢
-┃⌬┃♻️ *ᴠᴇʀsɪᴏɴ*  :  v${String(settings.version).padEnd(6)}
-┃⌬┃🌍 *ᴀᴄᴄès*    :  Public 
-┃⌬┃👑 *ᴘʀᴏᴘʀɪéᴛᴀɪʀᴇ* :  ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘ ❍
-╰━━━━━━━━━━━━❍
-
-> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`.trim();
+        const aliveMsg = report('🟢 Systèmes en ligne', [['Utilisateur', `@${senderNumber}`], ['Statut', '🟢 Opérationnel']], [
+            { title: '🤖 Bot', rows: [['♻️ Version', `v${settings.version}`], ['🌍 Accès', 'Public'], ['👑 Propriétaire', settings.menuOwner || settings.botOwner]] }
+        ], 'Je suis à votre disposition, Monsieur.');
 
         // Texte + aperçu d'image tournant (ajouté par lib/presentation.js)
         await sock.sendMessage(chatId, {

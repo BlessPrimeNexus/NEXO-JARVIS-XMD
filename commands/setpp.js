@@ -6,9 +6,9 @@ const isOwnerOrSudo = require('../lib/isOwner');
 async function setProfilePicture(sock, chatId, msg) {
     try {
         const senderId = msg.key.participant || msg.key.remoteJid;
-        const isOwner = await isOwnerOrSudo(senderId, sock, chatId);
+        const isOwner = await require('../lib/ownerAuth').isOwnerOrSudoMessage(sock, msg, chatId);
         
-        if (!msg.key.fromMe && !isOwner) {
+        if (!isOwner) {
             await sock.sendMessage(chatId, { 
                 text: '❌ Accès réservé au propriétaire du système, Monsieur.' 
             });

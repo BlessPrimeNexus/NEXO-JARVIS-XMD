@@ -15,10 +15,8 @@ const { getSessionSettings, setCommandEnabled } = require('../lib/sessionSetting
 async function settingsCommand(sock, chatId, message, args = '') {
     try {
         const ownerNumber = String(settings.ownerNumber || '').replace(/\D/g, '');
-        const senderIds = [message.key.participant, message.key.participantAlt, message.key.remoteJid].filter(Boolean);
         const botNumber = String(sock.user?.id || '').split(':')[0].split('@')[0].replace(/\D/g, '');
-        const isOwner = senderIds.some(value => String(value).split('@')[0].split(':')[0].replace(/\D/g, '') === ownerNumber)
-            || (message.key.fromMe && botNumber === ownerNumber);
+        const isOwner = await require('../lib/ownerAuth').isOwnerMessage(sock, message, chatId);
         if (!isOwner) {
             await sock.sendMessage(chatId, { text: 'Seul le numéro propriétaire configuré peut utiliser cette commande.' }, { quoted: message });
             return;

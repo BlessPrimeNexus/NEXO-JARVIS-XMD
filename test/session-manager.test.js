@@ -1,4 +1,5 @@
 'use strict';
+process.env.NEXO_FANCY_FONT = '0';   // les tests lisent le texte en lettres normales (la police monospace est testée à part)
 
 const test = require('node:test');
 const assert = require('node:assert/strict');

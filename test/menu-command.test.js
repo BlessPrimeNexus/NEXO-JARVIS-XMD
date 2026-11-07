@@ -1,4 +1,5 @@
 'use strict';
+process.env.NEXO_FANCY_FONT = '0';   // les tests lisent le texte en lettres normales (la police monospace est testée à part)
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -35,4 +36,9 @@ test('does not swallow unrelated text or lookalike command names', () => {
   }
   assert.equal(parseMenuCommand('.list extra', { prefixed: true }), null);
   assert.equal(parseMenuCommand('.menuish', { prefixed: true }), null);
+});
+test('parses category shortcuts like .groupmenu', () => {
+  assert.deepEqual(parseMenuCommand('.groupmenu', { prefixed: true }), { query: 'group' });
+  assert.deepEqual(parseMenuCommand('.downloadmenu', { prefixed: true }), { query: 'download' });
+  assert.equal(parseMenuCommand('.groupmenu', { prefixed: false }), null);
 });

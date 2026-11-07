@@ -13,10 +13,12 @@ const yts = require('yt-search');
 const fs = require('fs');
 const path = require('path');
 const { toAudio } = require('../lib/converter');
+const ytdlp = require('../lib/ytdlp');
+const health = require('../lib/downloadHealth');
 const { commandInput, isHttpUrl, safeFileName } = require('../lib/downloadUtils');
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
-const API_TIMEOUT = 20000;
+const API_TIMEOUT = 12000;
 const FILE_TIMEOUT = 90000;
 const MIN_AUDIO_BYTES = 30 * 1024;
 const MAX_AUDIO_BYTES = 40 * 1024 * 1024;
@@ -131,19 +133,91 @@ function detectFormat(buffer) {
     return { ext: 'm4a', mime: 'audio/mp4' };
 }
 
-async function fetchFromProviders(youtubeUrl) {
+/*
+ * Chaîne de téléchargement, dans l'ordre :
+ *   1. yt-dlp (client YouTube « tv », puis cookies si fournis) — la source la plus fiable quand l'adresse du serveur n'est pas bloquée ;
+ *   2. les API gratuites (elles tombent souvent : une source en échec est mise de côté 10 min, voir lib/downloadHealth.js) ;
+ *   3. yt-dlp avec les autres clients YouTube ;
+ *   4. SoundCloud avec la même recherche (jamais bloqué comme YouTube) ;
+ *   5. ytdl-core (ancien repli).
+ * Chaque échec est écrit avec sa vraie cause dans la console (.logs) ; .dltest teste toutes les sources une par une.
+ */
+function buildSteps(youtubeUrl, query) {
+    const clients = ytdlp.clientsFor(Boolean(ytdlp.cookiesPath()));
+    const yt = (client) => ({ name: `yt-dlp (${client})`, run: async () => {
+        const result = await ytdlp.downloadMedia(youtubeUrl, { kind: 'audio', client });
+        return { buffer: result.buffer, title: result.title };
+    } });
+    const steps = [yt(clients[0])];
     for (const provider of PROVIDERS) {
-        try {
+        steps.push({ name: provider.name, run: async () => {
             const info = await provider.run(youtubeUrl);
-            const buffer = await downloadAudio(info.url);
-            console.log(`[song] ${provider.name} : OK (${Math.round(buffer.length / 1024)} Ko)`);
-            return { buffer, title: info.title };
+            return { buffer: await downloadAudio(info.url), title: info.title };
+        } });
+    }
+    for (const client of clients.slice(1)) steps.push(yt(client));
+    if (query) {
+        steps.push({ name: 'SoundCloud', run: async () => {
+            const result = await ytdlp.downloadMedia(`scsearch1:${query}`, { kind: 'audio' });
+            return { buffer: result.buffer, title: result.title };
+        } });
+    }
+    steps.push({ name: 'ytdl-core', run: async () => {
+        const local = await fetchLocal(youtubeUrl);
+        if (!local) throw new Error('indisponible');
+        return local;
+    } });
+    return steps;
+}
+
+function checkAudio(buffer) {
+    if (!buffer || buffer.length < MIN_AUDIO_BYTES) throw new Error(`fichier trop petit (${buffer ? buffer.length : 0} octets)`);
+    if (buffer.length > MAX_AUDIO_BYTES) throw new Error('fichier trop volumineux');
+}
+
+async function fetchChain(youtubeUrl, query = '') {
+    for (const step of buildSteps(youtubeUrl, query)) {
+        if (!health.usable(step.name)) { console.log(`[song] ${step.name} : mise de côté (échecs répétés)`); continue; }
+        const started = Date.now();
+        try {
+            const result = await step.run();
+            checkAudio(result.buffer);
+            health.ok(step.name, Date.now() - started);
+            console.log(`[song] ${step.name} : OK (${Math.round(result.buffer.length / 1024)} Ko, ${Date.now() - started} ms)`);
+            return { buffer: result.buffer, title: result.title, source: step.name };
         } catch (error) {
             const status = error.response?.status ? ` HTTP ${error.response.status}` : '';
-            console.warn(`[song] ${provider.name} : échec${status} — ${error.message}`);
+            const reason = ytdlp.explain(error);
+            health.fail(step.name, `${status} ${reason}`.trim(), Date.now() - started);
+            console.warn(`[song] ${step.name} : échec${status} — ${reason}`);
         }
     }
     return null;
+}
+
+// Diagnostic (.dltest) : chaque source testée une fois, sans mise de côté. Retourne [{ name, ok, ms, detail }].
+async function diagnose(youtubeUrl, query, { concurrency = 3 } = {}) {
+    const steps = buildSteps(youtubeUrl, query);
+    const results = new Array(steps.length);
+    let next = 0;
+    const worker = async () => {
+        while (next < steps.length) {
+            const index = next++;
+            const started = Date.now();
+            try {
+                const result = await steps[index].run();
+                checkAudio(result.buffer);
+                results[index] = { name: steps[index].name, ok: true, ms: Date.now() - started, detail: `${Math.round(result.buffer.length / 1024)} Ko` };
+                health.ok(steps[index].name, Date.now() - started);
+            } catch (error) {
+                const reason = ytdlp.explain(error);
+                results[index] = { name: steps[index].name, ok: false, ms: Date.now() - started, detail: `${error.response?.status ? `HTTP ${error.response.status} ` : ''}${reason}` };
+                health.fail(steps[index].name, reason, Date.now() - started);
+            }
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, steps.length) }, worker));
+    return results;
 }
 
 // Repli local : lecture directe depuis YouTube (peut être bloquée selon l'hébergeur).
@@ -222,7 +296,7 @@ async function songCommand(sock, chatId, message) {
                   (video.timestamp ? `\n⏱ Durée : ${video.timestamp}` : '')
         }, { quoted: message });
 
-        const result = (await fetchFromProviders(video.url)) || (await fetchLocal(video.url));
+        const result = await fetchChain(video.url, label);
         if (!result) {
             throw new Error('ALL_SOURCES_FAILED');
         }
@@ -266,3 +340,6 @@ async function songCommand(sock, chatId, message) {
 module.exports = songCommand;
 module.exports.findDownloadUrl = findDownloadUrl;
 module.exports.detectFormat = detectFormat;
+module.exports.fetchChain = fetchChain;
+module.exports.diagnose = diagnose;
+module.exports.buildSteps = buildSteps;

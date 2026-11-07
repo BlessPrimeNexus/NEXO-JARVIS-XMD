@@ -1,3 +1,4 @@
+require('./lib/logBuffer').install();   // journal des dernières lignes (commande .logs)
 /**
  * NEXO-JARVIS XMD — web.js  v19  (SINGLE-SOCKET PERSISTENT PAIRING)
  *
@@ -167,6 +168,7 @@ function requireAdmin(req, res, next) {
 /* ─── Sessions marquées prêtes ───────────────────────────── */
 // Map<string, { ts }>
 const pairedNumbers = new Map();
+require('./lib/sessionControl').onRemoved(number => { pairedNumbers.delete(number); pairingSockets.delete(number); });
 // Map<string, { code, message, ts }>
 const pairingFailures = new Map();
 
@@ -460,6 +462,35 @@ setTimeout(() => startExistingSessions().catch(e => console.error('[NEXO-JARVIS]
  *  ROUTES
  * ═══════════════════════════════════════════════════════════ */
 app.get('/ping', (_q, r) => r.json({ pong: true, ts: Date.now() }));
+
+/* ─── API publique du site (affichage uniquement, aucune donnée sensible) ─── */
+let siteCommandsCache = null;
+app.get('/api/site', (_q, r) => {
+  const cfg = require('./settings');
+  const owner = String(cfg.ownerNumber || '').replace(/\D/g, '');
+  r.json({
+    name: String(cfg.botName || 'NEXO-JARVIS XMD'),
+    version: String(cfg.version || ''),
+    channel: String(cfg.channelLink || ''),
+    owner: owner ? `https://wa.me/${owner}` : '',
+    prefix: '.',
+  });
+});
+
+app.get('/api/commands', (_q, r) => {
+  try {
+    if (!siteCommandsCache) {
+      const help = require('./commands/help');
+      const categories = help.MENUS.map(menu => ({
+        key: menu.key, icon: menu.icon, label: menu.label, commands: [...new Set(menu.commands)],
+      }));
+      siteCommandsCache = { prefix: '.', total: help.commandCount(), categories };
+    }
+    r.set('Cache-Control', 'public, max-age=300').json(siteCommandsCache);
+  } catch (error) {
+    r.status(503).json({ error: true, message: 'Catalogue indisponible pour le moment.' });
+  }
+});
 
 app.get('/health', (_q, r) => {
   const insts = getAllInstances();

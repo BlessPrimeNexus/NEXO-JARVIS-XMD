@@ -45,7 +45,7 @@ function topMembers(sock, chatId, isGroup) {
         .slice(0, 5); // Get top 5 members
 
     if (sortedMembers.length === 0) {
-        sock.sendMessage(chatId, { text: 'No message activity recorded yet.' });
+        sock.sendMessage(chatId, { text: '📊 Aucune activité enregistrée pour le moment, Monsieur.' });
         return;
     }
 

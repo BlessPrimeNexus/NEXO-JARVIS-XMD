@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const isAdmin = require('../lib/isAdmin');
 const {channelInfo} = require('../lib/messageConfig');
-const STATE_FILE = path.join(__dirname, '../data/groupAnti.json');
+const STATE_FILE = process.env.GROUPANTI_FILE || path.join(__dirname, '../data/groupAnti.json');
 const defaults = {antiflood:{enabled:false,limit:5,windowMs:10000},antispam:{enabled:false,repeatLimit:3,windowMs:20000},antimedia:{enabled:false},antisticker:{enabled:false},antivoice:{enabled:false}};
 const recentFlood = new Map();
 const recentSpam = new Map();
@@ -69,11 +69,20 @@ async function handleGroupAnti(sock, chatId, message, senderId) {
     const state = readState();
     const active = Object.keys(defaults).filter(feature => getFeature(state, feature, chatId).enabled);
     if (!active.length) return false;
-    let admin = false;
-    try { admin = Boolean((await isAdmin(sock, chatId, senderId))?.isSenderAdmin); } catch (error) {}
+    let admin = false; let botAdmin = true;
+    try { const status = await isAdmin(sock, chatId, senderId); admin = Boolean(status?.isSenderAdmin); botAdmin = Boolean(status?.isBotAdmin); } catch (error) {}
     if (admin) return false;
     const kind = mediaKind(message);
-    if (active.includes('antimedia') && kind) return warnAndDelete(sock, chatId, message, senderId, 'antimedia');
+    if (!botAdmin) {
+        // Sans droits admin, impossible de supprimer : on le dit (1 fois / 30 min) au lieu de « ne rien faire ».
+        const noticeKey = chatId + ':noadmin'; const at = Date.now();
+        if ((warningCooldown.get(noticeKey) || 0) < at) {
+            warningCooldown.set(noticeKey, at + 30 * 60 * 1000);
+            try { await sock.sendMessage(chatId, { text: '⚠️ Une protection est active, mais je ne suis pas administrateur du groupe : je ne peux pas supprimer les messages. Faites-moi admin.' }); } catch (error) {}
+        }
+        return false;
+    }
+    if (active.includes('antimedia') && kind === 'media') return warnAndDelete(sock, chatId, message, senderId, 'antimedia');
     if (kind === 'sticker' && active.includes('antisticker')) return warnAndDelete(sock, chatId, message, senderId, 'antisticker');
     if (kind === 'voice' && active.includes('antivoice')) return warnAndDelete(sock, chatId, message, senderId, 'antivoice');
     const now = Date.now();
