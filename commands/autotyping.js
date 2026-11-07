@@ -1,5 +1,6 @@
 // commands/autotyping.js
-let autotypingEnabled = new Map(); // Stocke l'état par chat
+const { ScopedMap } = require('../lib/sessionContext');
+let autotypingEnabled = new ScopedMap(); // Stocke l'état par chat
 
 async function autotypingCommand(sock, chatId, message) {
     const args = message.message?.conversation?.split(' ') || [];

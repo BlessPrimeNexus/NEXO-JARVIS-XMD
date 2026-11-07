@@ -8,7 +8,8 @@ const { channelInfo } = require('../lib/messageConfig');
 const STATE_FILE = path.join(__dirname, '../data/hijack.json');
 const MAX_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_MESSAGE = '🛑 𝗛𝗜𝗝𝗔𝗖𝗞 𝗔𝗖𝗧𝗜𝗩𝗘\n🔐 Groupe temporairement verrouillé.\n⚡ Contrôle : NEXO-JARVIS XMD\n🛡️ Mode sécurité activé.';
-const expiryTimers = new Map();
+const { ScopedMap } = require('../lib/sessionContext');
+const expiryTimers = new ScopedMap();
 
 function ensureStateFile() {
     fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });

@@ -1,5 +1,15 @@
 # Changements — révision « créateur »
 
+## Sessions isolées (un numéro = un bot indépendant) et site sans emoji
+
+- **Bug corrigé : deux numéros partageaient les mêmes réglages.** Tous les réglages étaient dans des fichiers uniques de `data/`. Chaque numéro connecté a maintenant ses propres réglages dans `data/sessions/<numéro>/` : mode public/privé, préfixe, langue, protections de groupe (antilink, antibot…), bienvenue, antidelete, autoread, sudo, bannis, avertissements, économie, notes, chatbot… (`lib/sessionContext.js`).
+- Chaque événement WhatsApp s'exécute dans le contexte de sa session ; les compteurs et minuteries en mémoire (antiflood, hijack, chatbot…) sont aussi séparés.
+- **Droits** : le compte connecté est propriétaire de SON bot (réglages, langue, sudo). Les commandes de la plateforme (`.panel`, `.restart`, `.sessions`, `.update`, `.ram`, `.logs`, `.config`…) restent réservées au développeur (`settings.ownerNumbers`).
+- **Migration** : les anciens réglages globaux sont recopiés une seule fois vers la session du propriétaire principal (`settings.ownerNumber`, ou `LEGACY_DATA_SESSION`). Les autres numéros démarrent à neuf.
+- Fichiers restés communs : cache de traduction, cookies yt-dlp, cache de la chaîne, configuration du panneau, journal des messages (clés séparées par session).
+- **Site web** : plus aucun emoji ; toutes les icônes sont de vraies icônes SVG (fonctionnalités, catégories de commandes, états, boutons) et les drapeaux sont remplacés par le code pays.
+
+
 ## Refonte du site de connexion (partie web)
 
 - **Nouveau design** clair / sombre (bouton de thème, mémorisé), responsive mobile, accessible.

@@ -68,6 +68,13 @@
     .wrap { width: min(1120px, 100% - 40px); margin-inline: auto; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+    .i { width: 1.15em; height: 1.15em; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: -.2em; }
+    .ic .i { width: 26px; height: 26px; color: var(--primary); }
+    .flag { font-size: .74rem; font-weight: 800; letter-spacing: .05em; background: var(--primary-soft); color: var(--primary); padding: 5px 8px; border-radius: 8px; line-height: 1; }
+    .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .status { display: flex; gap: 8px; align-items: flex-start; }
+    .status .i { margin-top: 2px; }
+    .err-line { display: inline-flex; gap: 8px; align-items: center; color: var(--err); font-weight: 600; }
     /* ── En-tête ── */
     .topbar {
       position: sticky; top: 0; z-index: 50; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
@@ -188,7 +195,7 @@
     .phone.bad { border-color: var(--err); }
     .cc-btn { display: flex; align-items: center; gap: 8px; padding: 0 14px; min-height: 56px; border-right: 2px solid var(--border); font-weight: 700; white-space: nowrap; border-radius: 12px 0 0 12px; }
     .cc-btn:hover { background: var(--primary-soft); }
-    .cc-btn .flag { font-size: 1.35rem; line-height: 1; }
+    
     .phone input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; padding: 0 14px; font-size: 1.08rem; font-weight: 600; letter-spacing: .02em; min-height: 56px; }
     .hint { font-size: .84rem; color: var(--muted); margin: 9px 2px 18px; }
     .cc-menu {
@@ -264,7 +271,7 @@
     @media (min-width: 980px) { .grid4 { grid-template-columns: repeat(4, 1fr); } }
     .feat { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 24px; transition: transform .25s, box-shadow .25s, border-color .25s; }
     .feat:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
-    .feat .ic { width: 50px; height: 50px; border-radius: 14px; display: grid; place-items: center; font-size: 1.55rem; background: var(--primary-soft); margin-bottom: 16px; }
+    .feat .ic { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: var(--primary-soft); margin-bottom: 16px; }
     .feat h3 { font-size: 1.08rem; font-weight: 800; letter-spacing: -.01em; margin-bottom: 6px; }
     .feat p { color: var(--muted); font-size: .94rem; }
     .num { font-family: var(--mono); font-weight: 700; color: var(--primary); font-size: .85rem; margin-bottom: 14px; display: block; letter-spacing: .08em; }
@@ -276,7 +283,7 @@
     .search svg { flex: none; width: 20px; height: 20px; color: var(--muted); }
     .search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; min-height: 52px; font-weight: 600; }
     .chips { display: flex; gap: 8px; margin: 16px 0; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
-    .chip { flex: none; padding: 9px 15px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); font-weight: 600; font-size: .88rem; white-space: nowrap; transition: .2s; }
+    .chip { flex: none; display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); font-weight: 600; font-size: .88rem; white-space: nowrap; transition: .2s; }
     .chip:hover { border-color: var(--primary); }
     .chip.on { background: var(--primary); border-color: var(--primary); color: #fff; }
     .cmds { display: flex; flex-wrap: wrap; gap: 8px; min-height: 60px; }
@@ -320,6 +327,7 @@
   </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol><symbol id="i-xcircle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol><symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></symbol><symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/></symbol><symbol id="i-rocket" viewBox="0 0 24 24"><path d="M5 19c-1 1-1 3-1 3s2 0 3-1M14 4c3-2 6-2 6-2s0 3-2 6l-8 8-4-4z"/><circle cx="15" cy="9" r="1.5"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13v2M15 13v2M2 13v3M22 13v3"/><circle cx="12" cy="3" r="1"/></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></symbol><symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2.5 4 2.5S16 14 16 14M9 9.5h.01M15 9.5h.01"/></symbol><symbol id="i-gamepad" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 10v5M4.5 12.5h5M15 11.5h.01M18 13.5h.01"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol><symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-4 3-6 6.5-6s6 2 6.5 6M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2 .8 3 2.800 3.500 6"/></symbol><symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol><symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></symbol><symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-8 9"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol><symbol id="i-coins" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.5 9c-.5-1-1.500-1.500-2.500-1.500-1.500 0-2.500.8-2.500 2s1 1.700 2.500 2 2.500.8 2.500 2-1 2-2.500 2c-1 0-2-.5-2.500-1.500M12 6v1.500M12 16.500V18"/></symbol><symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M9 7h6"/></symbol><symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 8h4l2-3h6l2 3h4v12H3z"/><circle cx="12" cy="13" r="3.5"/></symbol><symbol id="i-crown" viewBox="0 0 24 24"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 4-7 8-7s7 2 8 7"/></symbol><symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.800 5.200L19 10l-5.200 1.800L12 17l-1.800-5.200L5 10l5.200-1.800zM19 16l.8 2.200L22 19l-2.200.8L19 22l-.8-2.200L16 19l2.200-.8z"/></symbol><symbol id="i-type" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></symbol><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 8a8 8 0 0 0-14-2L4 8M4 4v4h4M4 16a8 8 0 0 0 14 2l2-2M20 20v-4h-4"/></symbol><symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M8 8a5.500 5.500 0 0 0 0 8M16 8a5.500 5.500 0 0 1 0 8M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/></symbol><symbol id="i-dice" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01"/></symbol><symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-8-5-8-11a4.500 4.500 0 0 1 8-2.500A4.500 4.500 0 0 1 20 9c0 6-8 11-8 11z"/></symbol><symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.500 4.500 0 0 1 0 9z"/></symbol><symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol><symbol id="i-gem" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9 3l-3 6 6 12M15 3l3 6-6 12"/></symbol><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.500"/><rect x="14" y="3" width="7" height="7" rx="1.500"/><rect x="3" y="14" width="7" height="7" rx="1.500"/><rect x="14" y="14" width="7" height="7" rx="1.500"/></symbol><symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.800 5.800 6.200.9-4.500 4.400 1 6.200L12 17.300 6.500 20.300l1-6.200L3 9.700l6.200-.9z"/></symbol></defs></svg>
 <noscript><div class="noscript">JavaScript est nécessaire pour générer ton code de connexion.</div></noscript>
 
 <header class="topbar">
@@ -406,7 +414,7 @@
             <label class="lbl" for="phoneInput">Numéro WhatsApp</label>
             <div class="phone" id="phoneBox">
               <button class="cc-btn" id="ccBtn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Choisir le pays">
-                <span class="flag" id="ccFlag">🌍</span><span id="ccDial">+243</span>
+                <span class="flag" id="ccFlag">CD</span><span id="ccDial">+243</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
               </button>
               <input id="phoneInput" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="812 345 678" aria-describedby="phoneHint">
@@ -431,7 +439,7 @@
           <div class="codebox" id="codeBox" aria-live="polite">
             <div id="codeInner" class="code-idle">Ton code apparaîtra ici</div>
             <div class="code-meta" id="codeMeta" hidden>
-              <span>⏱ Généré il y a <b id="codeAge">0:00</b></span>
+              <span><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg> Généré il y a <b id="codeAge">0:00</b></span>
               <span class="spin dark" id="codeSpin" aria-hidden="true"></span>
               <span id="codeWait">En attente de ta validation…</span>
             </div>
@@ -473,7 +481,7 @@
           <div class="card reveal">
             <h3>État de ta connexion</h3>
             <p class="s">Entre ton numéro à gauche puis touche « Vérifier l’état de ma connexion ».</p>
-            <div id="checkResult"><span class="badge warn">● Aucune vérification</span></div>
+            <div id="checkResult"><span class="badge warn">Aucune vérification</span></div>
             <p class="s" id="checkDetail" style="margin:12px 0 0"></p>
           </div>
           <div class="card reveal">
@@ -494,9 +502,9 @@
     <div class="wrap">
       <div class="sec-head reveal"><div class="eyebrow">Comment ça marche</div><h2 class="title">Trois étapes, zéro configuration</h2><p class="sub">Pas de fichier à télécharger ni de serveur à installer : tout est géré pour toi.</p></div>
       <div class="grid3">
-        <article class="feat reveal"><span class="num">01</span><div class="ic">📱</div><h3>Entre ton numéro</h3><p>Choisis ton pays et saisis ton numéro WhatsApp. Aucun mot de passe n’est demandé.</p></article>
-        <article class="feat reveal"><span class="num">02</span><div class="ic">🔑</div><h3>Recopie le code</h3><p>Un code à 8 caractères s’affiche. Saisis-le dans WhatsApp → Appareils connectés.</p></article>
-        <article class="feat reveal"><span class="num">03</span><div class="ic">🚀</div><h3>Profite du bot</h3><p>Envoie <code>.menu</code> et découvre plus de 300 commandes, en français comme en anglais.</p></article>
+        <article class="feat reveal"><span class="num">01</span><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg></div><h3>Entre ton numéro</h3><p>Choisis ton pays et saisis ton numéro WhatsApp. Aucun mot de passe n’est demandé.</p></article>
+        <article class="feat reveal"><span class="num">02</span><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg></div><h3>Recopie le code</h3><p>Un code à 8 caractères s’affiche. Saisis-le dans WhatsApp → Appareils connectés.</p></article>
+        <article class="feat reveal"><span class="num">03</span><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-rocket"/></svg></div><h3>Profite du bot</h3><p>Envoie <code>.menu</code> et découvre plus de 300 commandes, en français comme en anglais.</p></article>
       </div>
     </div>
   </section>
@@ -506,14 +514,14 @@
     <div class="wrap">
       <div class="sec-head reveal"><div class="eyebrow">Fonctionnalités</div><h2 class="title">Tout ce qu’il faut, au même endroit</h2><p class="sub">31 catégories de commandes pour gérer tes groupes, créer, t’informer et t’amuser.</p></div>
       <div class="grid4">
-        <article class="feat reveal"><div class="ic">🤖</div><h3>IA & images</h3><p>Discute avec l’IA, génère des images et améliore tes photos en une commande.</p></article>
-        <article class="feat reveal"><div class="ic">🛡️</div><h3>Protections de groupe</h3><p>Antilink, antibot, antispam, antibadword : ton groupe reste propre sans effort.</p></article>
-        <article class="feat reveal"><div class="ic">📥</div><h3>Téléchargements</h3><p>YouTube, TikTok, Instagram, Facebook, Spotify : musiques et vidéos en un message.</p></article>
-        <article class="feat reveal"><div class="ic">🦊</div><h3>Stickers & médias</h3><p>Crée des stickers, des GIF et des effets visuels à partir de tes photos.</p></article>
-        <article class="feat reveal"><div class="ic">🎮</div><h3>Jeux & économie</h3><p>Morpion, pendu, quiz, et une économie virtuelle avec solde, travail et classement.</p></article>
-        <article class="feat reveal"><div class="ic">🛠️</div><h3>Outils pratiques</h3><p>Traduction, synthèse vocale, QR codes, calculs, météo, notes et rappels.</p></article>
-        <article class="feat reveal"><div class="ic">👥</div><h3>Gestion de groupe</h3><p>Bienvenue personnalisée, tag, sondages, avertissements, promotions et plus.</p></article>
-        <article class="feat reveal"><div class="ic">🌐</div><h3>Bilingue</h3><p>Le bot parle français ou anglais, boutons et menus compris, au choix du propriétaire.</p></article>
+        <article class="feat reveal"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-bot"/></svg></div><h3>IA & images</h3><p>Discute avec l’IA, génère des images et améliore tes photos en une commande.</p></article>
+        <article class="feat reveal"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg></div><h3>Protections de groupe</h3><p>Antilink, antibot, antispam, antibadword : ton groupe reste propre sans effort.</p></article>
+        <article class="feat reveal"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg></div><h3>Téléchargements</h3><p>YouTube, TikTok, Instagram, Facebook, Spotify : musiques et vidéos en un message.</p></article>
+        <article class="feat reveal"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-smile"/></svg></div><h3>Stickers & médias</h3><p>Crée des stickers, des GIF et des effets visuels à partir de tes photos.</p></article>
+        <article class="feat reveal"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-gamepad"/></svg></div><h3>Jeux & économie</h3><p>Morpion, pendu, quiz, et une économie virtuelle avec solde, travail et classement.</p></article>
+        <article class="feat reveal"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-sliders"/></svg></div><h3>Outils pratiques</h3><p>Traduction, synthèse vocale, QR codes, calculs, météo, notes et rappels.</p></article>
+        <article class="feat reveal"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg></div><h3>Gestion de groupe</h3><p>Bienvenue personnalisée, tag, sondages, avertissements, promotions et plus.</p></article>
+        <article class="feat reveal"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-globe"/></svg></div><h3>Bilingue</h3><p>Le bot parle français ou anglais, boutons et menus compris, au choix du propriétaire.</p></article>
       </div>
     </div>
   </section>
@@ -579,6 +587,7 @@
 'use strict';
 (function () {
   var $ = function (id) { return document.getElementById(id); };
+  window.__icon = function (name) { return icon(name); };
 
   /* ── Utilitaires ── */
   var toastTimer;
@@ -698,13 +707,19 @@
     ['BD','Bangladesh','880'],['CN','Chine','86'],['JP','Japon','81'],['KR','Corée du Sud','82'],['ID','Indonésie','62'],['PH','Philippines','63'],
     ['VN','Viêt Nam','84'],['TH','Thaïlande','66'],['MY','Malaisie','60'],['AU','Australie','61'],['NZ','Nouvelle-Zélande','64']
   ];
-  function flag(iso) { return String.fromCodePoint.apply(null, iso.split('').map(function (c) { return 127397 + c.charCodeAt(0); })); }
+  var NS = 'http://www.w3.org/2000/svg';
+  function icon(name) {
+    var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('class', 'i'); svg.setAttribute('aria-hidden', 'true');
+    var use = document.createElementNS(NS, 'use'); use.setAttribute('href', '#i-' + name); svg.appendChild(use); return svg;
+  }
+  // Nettoie les textes venant du serveur : aucun emoji affiché.
+  function clean(text) { return String(text == null ? '' : text).replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '').replace(/\s+/g, ' ').trim(); }
   var current = COUNTRIES[0];
   var ccBtn = $('ccBtn'), ccMenu = $('ccMenu'), ccList = $('ccList'), ccSearch = $('ccSearch'), phone = $('phoneInput');
 
   function norm(s) { return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
   function setCountry(c) {
-    current = c; $('ccFlag').textContent = flag(c[0]); $('ccDial').textContent = '+' + c[2]; store('nexo-cc', c[0]);
+    current = c; $('ccFlag').textContent = c[0]; $('ccDial').textContent = '+' + c[2]; store('nexo-cc', c[0]);
   }
   function renderCountries(filter) {
     var q = norm(filter || '').replace(/^\+/, '');
@@ -713,7 +728,7 @@
       .forEach(function (c) {
         var li = document.createElement('li'); li.setAttribute('role', 'option');
         if (c === current) li.setAttribute('aria-selected', 'true');
-        var f = document.createElement('span'); f.textContent = flag(c[0]); f.style.fontSize = '1.3rem';
+        var f = document.createElement('span'); f.className = 'flag'; f.textContent = c[0];
         var n = document.createElement('span'); n.textContent = c[1];
         var d = document.createElement('span'); d.className = 'd'; d.textContent = '+' + c[2];
         li.append(f, n, d);
@@ -763,11 +778,16 @@
     for (var i = 1; i <= 3; i++) {
       var el = $('st' + i), icon = el.querySelector('i');
       el.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
-      icon.textContent = i < n ? '✓' : i;
+      if (i < n) { icon.textContent = ''; icon.appendChild(window.__icon('check')); } else icon.textContent = i;
     }
     $('ln1').classList.toggle('done', n > 1); $('ln2').classList.toggle('done', n > 2);
   }
-  function setStatus(text, kind) { var s = $('statusMsg'); s.textContent = text || ''; s.className = 'status' + (kind ? ' ' + kind : ''); }
+  function setStatus(text, kind) {
+    var s = $('statusMsg'); s.textContent = ''; s.className = 'status' + (kind ? ' ' + kind : '');
+    if (!text) return;
+    s.appendChild(icon(kind === 'err' ? 'alert' : kind === 'ok' ? 'check' : 'hourglass'));
+    var span = document.createElement('span'); span.textContent = clean(text); s.appendChild(span);
+  }
 
   var poll = null, ageTimer = null, startedAt = 0, currentCode = '';
   function stopTimers() { if (poll) { clearInterval(poll); poll = null; } if (ageTimer) { clearInterval(ageTimer); ageTimer = null; } }
@@ -778,7 +798,9 @@
   }
   function showError(message) {
     stopTimers(); var box = $('codeBox'); box.className = 'codebox error';
-    $('codeInner').className = ''; $('codeInner').textContent = '❌ ' + message;
+    var inner = $('codeInner'); inner.className = ''; inner.textContent = '';
+    var line = document.createElement('span'); line.className = 'err-line'; line.appendChild(icon('xcircle'));
+    var msg = document.createElement('span'); msg.textContent = clean(message); line.appendChild(msg); inner.appendChild(line);
     $('codeMeta').hidden = true; $('codeActions').hidden = true; $('howInline').classList.remove('show'); currentCode = '';
   }
   function renderCode(code) {
@@ -808,14 +830,14 @@
     poll = setInterval(function () {
       fetch('/session?number=' + encodeURIComponent(num)).then(function (r) { return r.json(); }).then(function (d) {
         if (d.ready) { stopTimers(); showSuccess(); }
-        else if (d.error) { showError(d.error); setStatus('Le code précédent a expiré. Génère un nouveau code et réessaie.', 'err'); setStep(1); $('btnGen').disabled = false; }
+        else if (d.error) { showError(clean(d.error)); setStatus('Le code précédent a expiré. Génère un nouveau code et réessaie.', 'err'); setStep(1); $('btnGen').disabled = false; }
       }).catch(function () {});
     }, 3000);
   }
   function showSuccess() {
     stopTimers(); setStep(3); setStatus('', '');
     $('formPane').style.display = 'none'; $('codeBox').style.display = 'none'; $('howInline').classList.remove('show');
-    $('success').classList.add('show'); toast('✅ WhatsApp connecté !');
+    $('success').classList.add('show'); toast('WhatsApp connecté');
     $('pairCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function backToForm() {
@@ -826,15 +848,15 @@
   function generate() {
     var num = fullNumber(), btn = $('btnGen');
     if (num.length < 7 || num.length > 15) {
-      $('phoneBox').classList.add('bad'); setStatus('⚠ Entre un numéro valide (7 à 15 chiffres avec l’indicatif).', 'err'); phone.focus(); return;
+      $('phoneBox').classList.add('bad'); setStatus('Entre un numéro valide (7 à 15 chiffres avec l’indicatif).', 'err'); phone.focus(); return;
     }
     store('nexo-number', phone.value.replace(/\D/g, ''));
     stopTimers(); resetCodeBox('Connexion à WhatsApp…'); setStatus('', ''); setStep(2);
     btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Génération du code…';
     fetch('/code?number=' + encodeURIComponent(num)).then(function (r) { return r.json(); }).then(function (data) {
-      if (data.error) { showError(data.message || 'Erreur de génération du code.'); setStatus(data.preserving ? 'Utilise « Vérifier l’état de ma connexion » pour connaître l’état de cette session.' : 'Vérifie ton numéro et réessaie.', 'err'); setStep(1); }
+      if (data.error) { showError(clean(data.message) || 'Erreur de génération du code.'); setStatus(data.preserving ? 'Utilise « Vérifier l’état de ma connexion » pour connaître l’état de cette session.' : 'Vérifie ton numéro et réessaie.', 'err'); setStep(1); }
       else if (data.already) { showSuccess(); }
-      else { renderCode(String(data.code || '')); startAge(); setStatus('⏳ Saisis ce code dans WhatsApp → Appareils connectés → Associer un appareil.', 'wait'); startPoll(num); }
+      else { renderCode(String(data.code || '')); startAge(); setStatus('Saisis ce code dans WhatsApp → Appareils connectés → Associer un appareil.', 'wait'); startPoll(num); }
     }).catch(function () {
       showError('Impossible de contacter le serveur. Réessaie.'); setStatus('Erreur réseau. Vérifie ta connexion internet.', 'err'); setStep(1);
     }).then(function () { btn.disabled = false; btn.textContent = 'Générer mon code'; });
@@ -846,34 +868,36 @@
   $('btnForget').addEventListener('click', function () { phone.value = ''; store('nexo-number', null); store('nexo-cc', null); backToForm(); toast('Numéro effacé de cet appareil'); });
   $('copyBtn').addEventListener('click', function () {
     if (!currentCode) return;
-    copyText(currentCode).then(function (ok) { toast(ok ? '✓ Code copié' : 'Copie impossible : recopie-le à la main'); });
+    copyText(currentCode).then(function (ok) { toast(ok ? 'Code copié' : 'Copie impossible : recopie-le à la main'); });
   });
 
   /* ── Vérifier l’état d’un numéro ── */
   $('btnCheck').addEventListener('click', function () {
     var num = fullNumber(), out = $('checkResult'), detail = $('checkDetail');
-    if (num.length < 7) { $('phoneBox').classList.add('bad'); setStatus('⚠ Entre d’abord ton numéro pour vérifier son état.', 'err'); phone.focus(); return; }
+    if (num.length < 7) { $('phoneBox').classList.add('bad'); setStatus('Entre d’abord ton numéro pour vérifier son état.', 'err'); phone.focus(); return; }
     out.innerHTML = '<span class="badge warn"><span class="spin dark"></span> Vérification…</span>'; detail.textContent = '';
     fetch('/status?number=' + encodeURIComponent(num)).then(function (r) { return r.json(); }).then(function (d) {
       var badge = document.createElement('span');
-      if (d.connected) { badge.className = 'badge ok'; badge.textContent = '● Connecté'; detail.textContent = 'Ton bot est actif. Envoie .menu à ton propre numéro ou dans un groupe.'; }
-      else if (d.pairing) { badge.className = 'badge warn'; badge.textContent = '● Code en attente'; detail.textContent = 'Un code a été généré : saisis-le dans WhatsApp pour terminer.'; }
-      else if (d.running || (d.status && d.status !== 'DISCONNECTED' && d.status !== 'NOT_FOUND')) { badge.className = 'badge warn'; badge.textContent = '● Reconnexion en cours'; detail.textContent = 'La session existe et se reconnecte automatiquement.'; }
-      else { badge.className = 'badge err'; badge.textContent = '● Non connecté'; detail.textContent = 'Aucune session active pour ce numéro. Génère un code pour te connecter.'; }
+      if (d.connected) { badge.className = 'badge ok'; badge.textContent = 'Connecté'; detail.textContent = 'Ton bot est actif. Envoie .menu à ton propre numéro ou dans un groupe.'; }
+      else if (d.pairing) { badge.className = 'badge warn'; badge.textContent = 'Code en attente'; detail.textContent = 'Un code a été généré : saisis-le dans WhatsApp pour terminer.'; }
+      else if (d.running || (d.status && d.status !== 'DISCONNECTED' && d.status !== 'NOT_FOUND')) { badge.className = 'badge warn'; badge.textContent = 'Reconnexion en cours'; detail.textContent = 'La session existe et se reconnecte automatiquement.'; }
+      else { badge.className = 'badge err'; badge.textContent = 'Non connecté'; detail.textContent = 'Aucune session active pour ce numéro. Génère un code pour te connecter.'; }
       if (d.lastSeen) detail.textContent += ' Dernière activité : ' + new Date(d.lastSeen).toLocaleString('fr-FR') + '.';
       out.innerHTML = ''; out.appendChild(badge);
       document.getElementById('checkResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }).catch(function () { out.innerHTML = '<span class="badge err">● Serveur injoignable</span>'; detail.textContent = 'Réessaie dans un instant.'; });
+    }).catch(function () { out.innerHTML = '<span class="badge err">Serveur injoignable</span>'; detail.textContent = 'Réessaie dans un instant.'; });
   });
 
   /* ═══ Explorateur de commandes ═══ */
   var catalog = null, activeCat = 'all';
+  var CAT_ICON = { all: 'grid', ai: 'bot', aiImage: 'image', download: 'download', apk: 'phone', group: 'users', anti: 'shield', sticker: 'smile', media: 'film', search: 'search', tools: 'sliders', fun: 'star', game: 'gamepad', economy: 'coins', religi: 'book', status: 'camera', owner: 'crown', profile: 'user', notes: 'note', cyber: 'lock', logo: 'sparkles', textEffects: 'type', music: 'music', anime: 'sparkles', convert: 'refresh', utils: 'gear', broadcast: 'radio', random: 'dice', social: 'heart', weather: 'cloud', health: 'activity', premium: 'gem' };
   function renderChips() {
     var box = $('chips'); box.innerHTML = '';
-    var all = [{ key: 'all', icon: '✨', label: 'Toutes' }].concat(catalog.categories);
+    var all = [{ key: 'all', label: 'Toutes' }].concat(catalog.categories);
     all.forEach(function (c) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (c.key === activeCat ? ' on' : ''); b.setAttribute('role', 'tab');
-      b.textContent = c.icon + ' ' + (c.key === 'all' ? c.label : c.label.charAt(0) + c.label.slice(1).toLowerCase());
+      b.appendChild(icon(CAT_ICON[c.key] || 'star'));
+      var t = document.createElement('span'); t.textContent = c.key === 'all' ? c.label : c.label.charAt(0) + c.label.slice(1).toLowerCase(); b.appendChild(t);
       b.addEventListener('click', function () { activeCat = c.key; renderChips(); renderCommands(); });
       box.appendChild(b);
     });

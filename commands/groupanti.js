@@ -5,9 +5,10 @@ const isAdmin = require('../lib/isAdmin');
 const {channelInfo} = require('../lib/messageConfig');
 const STATE_FILE = process.env.GROUPANTI_FILE || path.join(__dirname, '../data/groupAnti.json');
 const defaults = {antiflood:{enabled:false,limit:5,windowMs:10000},antispam:{enabled:false,repeatLimit:3,windowMs:20000},antimedia:{enabled:false},antisticker:{enabled:false},antivoice:{enabled:false}};
-const recentFlood = new Map();
-const recentSpam = new Map();
-const warningCooldown = new Map();
+const { ScopedMap } = require('../lib/sessionContext');
+const recentFlood = new ScopedMap();
+const recentSpam = new ScopedMap();
+const warningCooldown = new ScopedMap();
 
 function readState() {
     try { if (!fs.existsSync(STATE_FILE)) return {}; return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')) || {}; }

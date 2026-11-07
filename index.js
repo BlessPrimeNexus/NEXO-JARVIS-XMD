@@ -1,3 +1,4 @@
+require('./lib/sessionContext').install();   // isolation des réglages par session (doit passer en premier)
 require('./lib/logBuffer').install();   // journal des dernières lignes (commande .logs)
 /**
  * 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 - A WhatsApp Bot

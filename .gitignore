@@ -10,3 +10,6 @@ tmp/
 *.bak
 auth_info_baileys/
 auth_info/
+
+# Réglages par session (un dossier par numéro connecté)
+data/sessions/

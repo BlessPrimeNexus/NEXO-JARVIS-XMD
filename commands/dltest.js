@@ -13,7 +13,7 @@ const SAMPLE = { url: 'https://youtu.be/dQw4w9WgXcQ', query: 'Rick Astley Never 
 
 async function dlTestCommand(sock, chatId, message, args = '') {
     const ownerAuth = require('../lib/ownerAuth');
-    if (!(await ownerAuth.isOwnerMessage(sock, message, chatId))) {
+    if (!(await ownerAuth.isPlatformOwnerMessage(sock, message, chatId))) {
         return sock.sendMessage(chatId, { text: '⛔ Accès réservé au propriétaire du système, Monsieur.' }, { quoted: message });
     }
     const reply = (title, rows, note) => sock.sendMessage(chatId, { text: panel(title, rows, note) }, { quoted: message });

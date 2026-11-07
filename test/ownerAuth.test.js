@@ -3,7 +3,7 @@ process.env.NEXO_FANCY_FONT = '0';   // les tests lisent le texte en lettres nor
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isOwnerMessage, ownerNumbers } = require('../lib/ownerAuth');
+const { isOwnerMessage, isPlatformOwnerMessage, ownerNumbers } = require('../lib/ownerAuth');
 
 const OWNER = '243802506198';
 const BOT = '243822993775';
@@ -53,9 +53,10 @@ test('un inconnu est refusé, même avec un LID', async () => {
     assert.equal(await isOwnerMessage(sockOf(BOT), dm, dm.key.remoteJid), false);
 });
 
-test('une AUTRE session connectée (fromMe) n\'est PAS propriétaire', async () => {
+test('le compte d\'une AUTRE session connectée (fromMe) est propriétaire de SON bot, pas de la plateforme', async () => {
     const message = { key: { remoteJid: '1@g.us', fromMe: true } };
-    assert.equal(await isOwnerMessage(sockOf('243777777777'), message, '1@g.us'), false);
+    assert.equal(await isOwnerMessage(sockOf('243777777777'), message, '1@g.us'), true);
+    assert.equal(await isPlatformOwnerMessage(sockOf('243777777777'), message, '1@g.us'), false);
 });
 
 test('un numéro qui ressemble au propriétaire mais n\'est pas le même est refusé', async () => {

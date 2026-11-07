@@ -251,7 +251,8 @@ function unwrapMessageContent(content) {
         const senderIsSudo = await isSudo(senderId);
         // Contrôle propriétaire STRICT (lib/ownerAuth.js) : numéros listés dans settings.ownerNumbers, LID traduits,
         // et un message envoyé depuis une autre session connectée ne vaut jamais « propriétaire ».
-        const senderIsPrimaryOwner = await ownerAuth.isOwnerMessage(sock, message, chatId);
+        const senderIsPlatformOwner = await ownerAuth.isPlatformOwnerMessage(sock, message, chatId);
+        const senderIsPrimaryOwner = senderIsPlatformOwner || await ownerAuth.isOwnerMessage(sock, message, chatId);
         const senderIsOwnerOrSudo = await ownerAuth.isOwnerOrSudoMessage(sock, message, chatId);
         if (isGroup) require('./lib/messageLog').record(chatId, message);   // journal des messages vus (pour .del)
         const configuredOwner = String(settings.ownerNumber || '').replace(/\D/g, '');
@@ -581,6 +582,13 @@ function unwrapMessageContent(content) {
 
         // Check owner status for owner commands
         if (isOwnerCommand) {
+            // Commandes de la PLATEFORME (redémarrage, mises à jour, sessions, ressources) : développeur uniquement.
+            // Les réglages du bot (mode, langue, préfixe…) restent à la portée du propriétaire de la session.
+            const PLATFORM_ONLY = ['.dltest', '.panel', '.ram', '.gc', '.logs', '.disk', '.restart', '.config', '.sessions', '.session', '.delsession', '.sessionlist', '.listsessions', '.update', '.clearsession', '.viewtest'];
+            if (PLATFORM_ONLY.some(commandMatches) && !senderIsPlatformOwner) {
+                await sock.sendMessage(chatId, { text: '⛔ Cette commande est réservée à l\'administrateur de la plateforme.' }, { quoted: message });
+                return;
+            }
             if (!senderIsPrimaryOwner && !(senderIsOwnerOrSudo && !STRICT_OWNER_ONLY.some(commandMatches))) {
                 await sock.sendMessage(chatId, { text: '⛔ Cette commande est réservée au propriétaire du bot.' }, { quoted: message });
                 return;

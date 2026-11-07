@@ -18,7 +18,7 @@ const channelInfo = {
 async function clearSessionCommand(sock, chatId, msg) {
     try {
         const senderId = msg.key.participant || msg.key.remoteJid;
-        const isOwner = await require('../lib/ownerAuth').isOwnerOrSudoMessage(sock, msg, chatId);
+        const isOwner = await require('../lib/ownerAuth').isPlatformOwnerMessage(sock, msg, chatId);
         
         if (!isOwner) {
             await sock.sendMessage(chatId, { 

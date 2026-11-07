@@ -22,7 +22,7 @@ const { sessionManager, maskPhoneNumber } = require('../lib/session-manager');
 const digits = (value) => String(value || '').split('@')[0].split(':')[0].replace(/\D/g, '');
 
 function isMainOwner(sock, message, chatId) {
-    return require('../lib/ownerAuth').isOwnerMessage(sock, message, chatId);
+    return require('../lib/ownerAuth').isPlatformOwnerMessage(sock, message, chatId);
 }
 
 function botControl() {

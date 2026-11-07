@@ -240,7 +240,11 @@ async function restartView(sock, chatId, message, args, prefix) {
 /* ─── Point d'entrée ────────────────────────────────────────── */
 
 async function panelCommand(sock, chatId, message, name, rawArgs = '') {
-    if (!(await ownerAuth.isOwnerMessage(sock, message, chatId))) {
+    // La langue est un réglage de la SESSION (propriétaire du bot) ; le reste du panneau est réservé à la plateforme.
+    const allowed = name === 'lang'
+        ? await ownerAuth.isOwnerMessage(sock, message, chatId)
+        : await ownerAuth.isPlatformOwnerMessage(sock, message, chatId);
+    if (!allowed) {
         return sock.sendMessage(chatId, { text: '⛔ Accès réservé au propriétaire du système, Monsieur.' }, { quoted: message });
     }
 

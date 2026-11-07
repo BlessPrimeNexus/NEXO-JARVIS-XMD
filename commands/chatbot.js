@@ -16,8 +16,8 @@ const MAX_HISTORY = 10;
 const MAX_RESPONSE_LENGTH = 600;
 
 const chatMemory = {
-    messages: new Map(),
-    userInfo: new Map()
+    messages: new (require('../lib/sessionContext').ScopedMap)(),
+    userInfo: new (require('../lib/sessionContext').ScopedMap)()
 };
 
 function loadUserGroupData() {

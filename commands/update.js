@@ -182,7 +182,7 @@ let updateInProgress = false;
 
 async function updateCommand(sock, chatId, message, zipOverride) {
     const senderId = message.key.participant || message.key.remoteJid;
-    const isOwner = await require('../lib/ownerAuth').isOwnerOrSudoMessage(sock, message, chatId);
+    const isOwner = await require('../lib/ownerAuth').isPlatformOwnerMessage(sock, message, chatId);
     if (!isOwner) {
         await sock.sendMessage(chatId, {text:'❌ Accès réservé au propriétaire du système, Monsieur.'}, {quoted:message});
         return;
