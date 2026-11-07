@@ -1,5 +1,10 @@
 name: Unzip
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - NEXO-JARVIS-XMD.zip
+      - .github/workflows/main.yml
 permissions:
   contents: write
 jobs:
