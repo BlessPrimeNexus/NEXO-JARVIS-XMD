@@ -1,5 +1,12 @@
 # Changements — révision « créateur »
 
+## Drapeaux, nouvelles images, annonce à tous les comptes
+
+- **Site web** : les drapeaux de pays sont de nouveau affichés (sélecteur de pays et champ du numéro).
+- **Images du bot** : les 10 images de `jarvis-images/` (trop sombres) sont remplacées par 10 nouvelles images lumineuses en 1200×630 : aurore, coucher de soleil, océan, bokeh menthe, polygones violets, corail, ciel, heure dorée, montagnes émeraude, verre néon.
+- **Nouvelle commande `.sendall <message>`** (alias `.notifyall`) : réservée à l'administrateur de la plateforme ; envoie une annonce à TOUS les comptes connectés au bot au même moment (dans la discussion avec soi-même de chaque compte, dans la langue de chaque session). `.sendall test <message>` n'envoie qu'à ton propre compte (essai) ; on peut aussi répondre à un texte avec `.sendall`. Un rapport « envoyé à X/Y » est renvoyé.
+
+
 ## Sessions isolées (un numéro = un bot indépendant) et site sans emoji
 
 - **Bug corrigé : deux numéros partageaient les mêmes réglages.** Tous les réglages étaient dans des fichiers uniques de `data/`. Chaque numéro connecté a maintenant ses propres réglages dans `data/sessions/<numéro>/` : mode public/privé, préfixe, langue, protections de groupe (antilink, antibot…), bienvenue, antidelete, autoread, sudo, bannis, avertissements, économie, notes, chatbot… (`lib/sessionContext.js`).

@@ -38,3 +38,33 @@ test('notes : ajout, liste, suppression', async () => {
 test('diffusion réservée au propriétaire', async () => {
     assert.match(await call('broadcast', ['salut']), /réservée au propriétaire/);
 });
+
+test('sendall : réservé à la plateforme, envoie à chaque compte connecté dans SON contexte', async () => {
+    process.env.SENDALL_DELAY_MS = '0';
+    const sessionContext = require('../lib/sessionContext');
+    const botInstance = require('../lib/botInstance');
+    const seen = [];
+    const fake = number => ({ number, connected: true, sock: { sendMessage: async (jid, content) => { seen.push({ jid, text: content.text, ctx: sessionContext.currentNumber() }); return {}; } } });
+    const original = botInstance.getConnectedBots;
+    botInstance.getConnectedBots = () => [fake('243111111111'), fake('243222222222'), fake('243333333333')];
+    try {
+        const out = [];
+        const sock = { sendMessage: async (j, c) => { out.push(c.text); return {}; } };
+        const base = { sock, chatId: U, message: { key: {}, message: {} }, senderId: U };
+
+        await extras.run('sendall', { ...base, args: ['Bonjour', 'à', 'tous'], isOwner: true, isPlatformOwner: false });
+        assert.match(out.join('\n'), /réservée à l'administrateur de la plateforme/);
+        assert.equal(seen.length, 0, 'un propriétaire de session ne peut pas diffuser');
+
+        out.length = 0;
+        await extras.run('sendall', { ...base, args: ['Bonjour', 'à', 'tous'], isOwner: true, isPlatformOwner: true });
+        assert.equal(seen.length, 3);
+        assert.deepEqual(seen.map(s => s.jid), ['243111111111@s.whatsapp.net', '243222222222@s.whatsapp.net', '243333333333@s.whatsapp.net']);
+        assert.deepEqual(seen.map(s => s.ctx), ['243111111111', '243222222222', '243333333333']);
+        assert.ok(seen.every(s => /Bonjour à tous/.test(s.text)));
+        assert.match(out.join('\n'), /3\/3/);
+
+        out.length = 0; await extras.run('sendall', { ...base, args: [], isOwner: true, isPlatformOwner: true });
+        assert.match(out.join('\n'), /Utilisation/);
+    } finally { botInstance.getConnectedBots = original; }
+});

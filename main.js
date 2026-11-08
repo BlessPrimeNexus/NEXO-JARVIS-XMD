@@ -584,7 +584,7 @@ function unwrapMessageContent(content) {
         if (isOwnerCommand) {
             // Commandes de la PLATEFORME (redémarrage, mises à jour, sessions, ressources) : développeur uniquement.
             // Les réglages du bot (mode, langue, préfixe…) restent à la portée du propriétaire de la session.
-            const PLATFORM_ONLY = ['.dltest', '.panel', '.ram', '.gc', '.logs', '.disk', '.restart', '.config', '.sessions', '.session', '.delsession', '.sessionlist', '.listsessions', '.update', '.clearsession', '.viewtest'];
+            const PLATFORM_ONLY = ['.dltest', '.panel', '.ram', '.gc', '.logs', '.disk', '.restart', '.config', '.sessions', '.session', '.delsession', '.sessionlist', '.listsessions', '.update', '.clearsession', '.viewtest', '.sendall', '.notifyall'];
             if (PLATFORM_ONLY.some(commandMatches) && !senderIsPlatformOwner) {
                 await sock.sendMessage(chatId, { text: '⛔ Cette commande est réservée à l\'administrateur de la plateforme.' }, { quoted: message });
                 return;
@@ -698,7 +698,7 @@ function unwrapMessageContent(content) {
         // Commandes complémentaires (économie, santé, cyber, notes, diffusion, apk, religion…).
         if (customCommandName && extraCommands.has(customCommandName)) {
             await extraCommands.run(customCommandName, {
-                sock, chatId, message, senderId, isOwner: senderIsOwnerOrSudo,
+                sock, chatId, message, senderId, isOwner: senderIsOwnerOrSudo, isPlatformOwner: senderIsPlatformOwner,
                 args: rawText.trim().split(/\s+/).slice(1)
             });
             sock.sendPresenceUpdate('paused', chatId).catch(() => {});

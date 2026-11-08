@@ -70,7 +70,7 @@
 
     .i { width: 1.15em; height: 1.15em; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: -.2em; }
     .ic .i { width: 26px; height: 26px; color: var(--primary); }
-    .flag { font-size: .74rem; font-weight: 800; letter-spacing: .05em; background: var(--primary-soft); color: var(--primary); padding: 5px 8px; border-radius: 8px; line-height: 1; }
+    .flag { font-size: 1.35rem; line-height: 1; }
     .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
     .status { display: flex; gap: 8px; align-items: flex-start; }
     .status .i { margin-top: 2px; }
@@ -414,7 +414,7 @@
             <label class="lbl" for="phoneInput">Numéro WhatsApp</label>
             <div class="phone" id="phoneBox">
               <button class="cc-btn" id="ccBtn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Choisir le pays">
-                <span class="flag" id="ccFlag">CD</span><span id="ccDial">+243</span>
+                <span class="flag" id="ccFlag">🇨🇩</span><span id="ccDial">+243</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
               </button>
               <input id="phoneInput" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="812 345 678" aria-describedby="phoneHint">
@@ -707,6 +707,7 @@
     ['BD','Bangladesh','880'],['CN','Chine','86'],['JP','Japon','81'],['KR','Corée du Sud','82'],['ID','Indonésie','62'],['PH','Philippines','63'],
     ['VN','Viêt Nam','84'],['TH','Thaïlande','66'],['MY','Malaisie','60'],['AU','Australie','61'],['NZ','Nouvelle-Zélande','64']
   ];
+  function flag(iso) { return String.fromCodePoint.apply(null, iso.split('').map(function (c) { return 127397 + c.charCodeAt(0); })); }
   var NS = 'http://www.w3.org/2000/svg';
   function icon(name) {
     var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('class', 'i'); svg.setAttribute('aria-hidden', 'true');
@@ -719,7 +720,7 @@
 
   function norm(s) { return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
   function setCountry(c) {
-    current = c; $('ccFlag').textContent = c[0]; $('ccDial').textContent = '+' + c[2]; store('nexo-cc', c[0]);
+    current = c; $('ccFlag').textContent = flag(c[0]); $('ccDial').textContent = '+' + c[2]; store('nexo-cc', c[0]);
   }
   function renderCountries(filter) {
     var q = norm(filter || '').replace(/^\+/, '');
@@ -728,7 +729,7 @@
       .forEach(function (c) {
         var li = document.createElement('li'); li.setAttribute('role', 'option');
         if (c === current) li.setAttribute('aria-selected', 'true');
-        var f = document.createElement('span'); f.className = 'flag'; f.textContent = c[0];
+        var f = document.createElement('span'); f.className = 'flag'; f.textContent = flag(c[0]);
         var n = document.createElement('span'); n.textContent = c[1];
         var d = document.createElement('span'); d.className = 'd'; d.textContent = '+' + c[2];
         li.append(f, n, d);

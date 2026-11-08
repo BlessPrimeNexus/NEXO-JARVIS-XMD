@@ -146,7 +146,7 @@ const MENUS = [
   {
     key: 'broadcast', icon: '📡', label: 'DIFFUSION', title: 'MENU DIFFUSION',
     aliases: ['diffusion', 'bc', 'annonce'],
-    commands: ['broadcast', 'bcgc', 'listgc']
+    commands: ['sendall', 'broadcast', 'bcgc', 'listgc']
   },
   {
     key: 'random', icon: '🎲', label: 'ALÉATOIRE', title: 'MENU ALÉATOIRE',
