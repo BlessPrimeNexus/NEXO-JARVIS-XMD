@@ -1,5 +1,11 @@
 # Changements — révision « créateur »
 
+## Menu épuré et images au thème Jarvis
+
+- **Menu principal** : suppression des textes superflus (phrase « Touchez… », pied de page « À utiliser avec responsabilité | … », phrase d'accroche). Il reste le titre, la salutation, le bloc « INFORMATIONS DU BOT » et les boutons.
+- **Images du bot** : les 10 images de `jarvis-images/` sont remplacées par 10 images originales au thème « interface futuriste rouge et or » (noyau d'énergie, radar, grille hexagonale, circuit, hologrammes, orbites, verrouillage, fréquences vocales, plaques, ville). Pour utiliser tes propres images, dépose des `.jpg` / `.png` dans `jarvis-images/` : le bot les fait tourner automatiquement.
+
+
 ## Drapeaux, nouvelles images, annonce à tous les comptes
 
 - **Site web** : les drapeaux de pays sont de nouveau affichés (sélecteur de pays et champ du numéro).

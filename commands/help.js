@@ -288,8 +288,6 @@ function greeting(date = new Date()) {
   return 'Bonne nuit 🌙';
 }
 
-const MENU_FOOTER = () => `À utiliser avec responsabilité | ${settings.menuOwner || settings.botOwner || 'NEXO-JARVIS'}`;
-
 function overviewText(ctx) {
   const { total, active } = sessionStats();
   const now = new Date();
@@ -307,9 +305,7 @@ function overviewText(ctx) {
   return [
     `🌐 *BOT WHATSAPP MULTI-APPAREILS*`,
     `${greeting(now)} *${ctx.user}*, je m'appelle *${botName}*.`,
-    `✨ _Je peux vous aider dans de nombreuses tâches sur WhatsApp._`,
-    '```INFORMATIONS DU BOT```\n' + info.map(([icon, label, value]) => `> ${icon} *${label} :* ${value}`).join('\n'),
-    `👇 _Touchez « Voir toutes les options » pour choisir une catégorie._`
+    '```INFORMATIONS DU BOT```\n' + info.map(([icon, label, value]) => `> ${icon} *${label} :* ${value}`).join('\n')
   ].join('\n\n');
 }
 
@@ -387,8 +383,6 @@ async function sendMenu(sock, chatId, message, text, senderId, view, prefix) {
         body: text,
         
         buttons: buttonsFor(view, prefix),
-        footer: view === 'overview' ? MENU_FOOTER() : '',
-        keepFooter: view === 'overview',
         image: photo,
         preview: !photo,
         quoted: message
