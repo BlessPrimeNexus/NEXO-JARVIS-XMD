@@ -202,7 +202,6 @@ async function replyWithButtons(sock, chatId, message, text, buttons) {
             await sendInteractiveMessage(sock, chatId, {
                 title: '',
                 body: text,
-                footer: `©Power by ${settings.botName || 'NEXO-JARVIS XMD'}`,
                 buttons,
                 quoted: message
             });

@@ -14,7 +14,7 @@ const settings = {
   // Carte du développeur (.owner)
   ownerRole: 'Développeur',
   ownerBio: 'Concepteur et mainteneur de NEXO-JARVIS XMD.',
-  ownerWebsite: 'https://nexo-jarvis-xmd.onrender.com',
+  ownerWebsite: 'https://nexo-jarvis-xmd-production.up.railway.app',
   ownerSendContact: false,  // true = la carte est suivie d'un 2e message : le contact WhatsApp à enregistrer d'un clic
   // Propriétaires : le développeur + le numéro sur lequel le bot principal est connecté.
   // Seuls ces numéros peuvent utiliser les commandes réservées (.sessions, .mode, .update…).
@@ -51,8 +51,12 @@ const settings = {
   description: "Assistant WhatsApp JARVIS — systèmes automatisés, modération et intelligence intégrée.",
   version: "2.0.0",
 
+  // Liens officiels (utilisés par .repo et .github)
+  repoUrl: 'https://github.com/BlessPrimeNexus/NEXO-JARVIS-XMD',
+  panelUrl: process.env.PANEL_URL || 'https://nexo-jarvis-xmd-production.up.railway.app',
+
   // Ton lien GitHub (optionnel)
-  updateZipUrl: "https://github.com/BlessPrimeNexusDev/NEXO-JARVIS-XMD/archive/refs/heads/main.zip",
+  updateZipUrl: "https://github.com/BlessPrimeNexus/NEXO-JARVIS-XMD/archive/refs/heads/main.zip",
 
   // URL du panneau — auto-détection Render / Railway / Vercel / fallback
   pairApiUrl: process.env.RENDER_EXTERNAL_URL
@@ -62,7 +66,7 @@ const settings = {
     : process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : process.env.PANEL_URL
-    || "https://nexo-jarvis-xmd.onrender.com",
+    || "https://nexo-jarvis-xmd-production.up.railway.app",
 };
 
 // Réglages modifiés depuis WhatsApp (.config) : réappliqués à chaque démarrage.

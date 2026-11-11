@@ -35,8 +35,7 @@ async function sudoCommand(sock, chatId, message) {
                 `┃⌬┃ ➕ *.sudo add @user* — Ajouter un premium\n` +
                 `┃⌬┃ ➖ *.sudo del @user* — Retirer un premium\n` +
                 `┃⌬┃ 📋 *.sudo list* — Voir la liste\n` +
-                `╰━━━━━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗`,
+                `╰━━━━━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
     }
@@ -66,8 +65,7 @@ async function sudoCommand(sock, chatId, message) {
                 `┃⌬┃ 📋 *Utilisateurs Premium (${list.length})*\n` +
                 `┃⌬┃\n` +
                 `${entries}\n` +
-                `╰━━━━━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗`,
+                `╰━━━━━━━━━━━━━━━━❍\n`,
             mentions,
             ...channelInfo
         }, { quoted: message });
@@ -110,8 +108,7 @@ async function sudoCommand(sock, chatId, message) {
                 `┃⌬┃    qu'utilisateur premium.\n` +
                 `┃⌬┃ Il peut désormais utiliser toutes les\n` +
                 `┃⌬┃ commandes avancées du bot 🚀\n` +
-                `╰━━━━━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗`,
+                `╰━━━━━━━━━━━━━━━━❍\n`,
             mentions: [targetJid],
             ...channelInfo
         }, { quoted: message });

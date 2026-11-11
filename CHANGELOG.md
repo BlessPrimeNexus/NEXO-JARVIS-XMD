@@ -1,5 +1,13 @@
 # Changements — révision « créateur »
 
+## Textes superflus supprimés, .repo refait, téléchargements avec aperçu, boutons et barre de progression
+
+- **Textes superflus retirés partout** : signatures « © 2026 … conçu par … », « ©Power by », « POWERED BY », « DOWNLOADED BY », « Téléchargé par… », pieds de page et phrases d'aide inutiles (commandes de groupe, sudo, tagall, viewonce, github, url, tiktok, instagram, facebook…). Un test empêche leur retour.
+- **.repo** refait au style de `.owner` (fiche + photo + boutons « Code source GitHub », « Panneau de connexion », « Copier le lien », « Menu ») ; **.github** au même style. Liens corrigés : dépôt `https://github.com/BlessPrimeNexus/NEXO-JARVIS-XMD` et panneau `https://nexo-jarvis-xmd-production.up.railway.app` (`settings.repoUrl` / `settings.panelUrl`).
+- **Téléchargements YouTube** (`.song`, `.play`, `.mp3`, `.ytmp3`, `.video`, `.ytmp4`) : le bot affiche d'abord l'aperçu de ce qui a été trouvé (miniature de la vidéo, titre, chaîne, durée, vues) avec des boutons de format : Audio MP3, Audio en document, Vidéo 360p / 480p / 720p, Vidéo en document, Ouvrir / Copier le lien.
+- **Barre de progression** : un seul message qui se modifie (`██████░░░░ 61%`), puis il est supprimé quand le média est livré (YouTube, Spotify, TikTok, Instagram, Facebook, stories). Spotify : fiche avec pochette et boutons.
+
+
 ## Menu épuré et images au thème Jarvis
 
 - **Menu principal** : suppression des textes superflus (phrase « Touchez… », pied de page « À utiliser avec responsabilité | … », phrase d'accroche). Il reste le titre, la salutation, le bloc « INFORMATIONS DU BOT » et les boutons.

@@ -71,8 +71,7 @@ async function kickAllCommand(sock, chatId, senderId, message) {
                 `┃⌬┃\n` +
                 `┃⌬┃ 🚫 Expulsés   : *${kicked}*\n` +
                 `┃⌬┃ ❌ Échecs     : *${failed}*\n` +
-                `╰━━━━━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗`,
+                `╰━━━━━━━━━━━━━━━━❍\n`,
             ...channelInfo
         });
 

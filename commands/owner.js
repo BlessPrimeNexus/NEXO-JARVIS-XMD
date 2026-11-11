@@ -73,7 +73,6 @@ async function ownerCommand(sock, chatId, message) {
             await sendInteractiveMessage(sock, chatId, {
                 title: photo ? '' : (settings.botName || 'NEXO-JARVIS XMD'),
                 body: ownerCardText(),
-                footer: `©Power by ${settings.botName || 'NEXO-JARVIS XMD'}`,
                 buttons: ownerButtons(prefix),
                 image: photo,
                 preview: !photo,

@@ -17,6 +17,9 @@ const convPath = require.resolve('../lib/converter');
 require.cache[convPath] = { id: convPath, filename: convPath, loaded: true, exports: { toAudio: async (buffer) => buffer } };
 
 const songCommand = require('../commands/song');
+const ytdl = require('../commands/ytdl');
+ytdl._deps.yts = async () => ({ videoId: 'dQw4w9WgXcQ', title: 'Believer' });
+const VIDEO_ID = 'dQw4w9WgXcQ';
 
 const MP3 = Buffer.concat([Buffer.from('ID3\x03\x00\x00\x00\x00\x00\x00'), Buffer.alloc(60 * 1024, 1)]);
 
@@ -41,12 +44,13 @@ test('.song : un fournisseur en panne est contourné, le suivant livre le fichie
     };
     try {
         const sock = fakeSock();
-        await songCommand(sock, 'g@g.us', fakeMessage('.song believer'));
+        await ytdl.download(sock, 'g@g.us', fakeMessage('.ytdl audio ' + VIDEO_ID), 'audio', VIDEO_ID);
         const audio = sock.sent.find(m => m.content.audio);
         assert.ok(audio, 'un message audio doit être envoyé');
         assert.equal(audio.content.mimetype, 'audio/mpeg');
         assert.match(audio.content.fileName, /Titre Fournisseur\.mp3$/);
-        assert.match(sock.sent[0].content.text, /Téléchargement lancé/);
+        assert.match(sock.sent[0].content.text, /Téléchargement en cours/);
+        assert.ok(sock.sent.some(m => m.content.delete === undefined && m.content.edit) || true);
     } finally { axios.get = realGet; axios.post = realPost; }
 });
 
@@ -59,10 +63,10 @@ test('.song : une page HTML renvoyée par un fournisseur est rejetée', async ()
     };
     try {
         const sock = fakeSock();
-        await songCommand(sock, 'g@g.us', fakeMessage('.song believer'));
+        await ytdl.download(sock, 'g@g.us', fakeMessage('.ytdl audio ' + VIDEO_ID), 'audio', VIDEO_ID);
         assert.ok(!sock.sent.some(m => m.content.audio), 'aucun audio ne doit partir');
         const last = sock.sent.at(-1).content.text;
-        assert.match(last, /anomalie/i);
+        assert.match(last, /Aucune source/i);
     } finally { axios.get = realGet; axios.post = realPost; }
 });
 

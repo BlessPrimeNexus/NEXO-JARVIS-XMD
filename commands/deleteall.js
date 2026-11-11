@@ -72,8 +72,7 @@ async function deleteAllCommand(sock, chatId, senderId, message) {
                 `┃⌬┃\n` +
                 `┃⌬┃ 🗑️ Messages supprimés : *${deletedCount}*\n` +
                 `┃⌬┃ ❌ Échecs : *${failedCount}*\n` +
-                `╰━━━━━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗`,
+                `╰━━━━━━━━━━━━━━━━❍\n`,
             ...channelInfo
         });
 

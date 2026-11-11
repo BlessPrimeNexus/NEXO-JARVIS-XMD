@@ -55,7 +55,6 @@ async function viewTestCommand(sock, chatId, message) {
         () => sendInteractiveMessage(sock, chatId, {
             title: 'TEST 7',
             body: title(7, 'Boutons (bouton rapide + chaîne)'),
-            footer: 'NEXO-JARVIS XMD',
             buttons: [
                 { name: 'quick_reply', params: { display_text: 'Bouton rapide', id: '.ping' } },
                 { name: 'cta_url', params: { display_text: 'CHAÎNE', url: channelLink(), merchant_url: channelLink() } }
@@ -66,7 +65,6 @@ async function viewTestCommand(sock, chatId, message) {
         () => sendInteractiveMessage(sock, chatId, {
             title: 'TEST 8',
             body: title(8, 'Liste déroulante'),
-            footer: 'NEXO-JARVIS XMD',
             buttons: [{
                 name: 'single_select',
                 params: { title: 'Ouvrir la liste', sections: [{ title: 'Test', rows: [{ header: '', title: 'Ligne 1', description: 'Test', id: '.ping' }] }] }
@@ -78,7 +76,6 @@ async function viewTestCommand(sock, chatId, message) {
         () => sendInteractiveMessage(sock, chatId, {
             title: 'TEST 9',
             body: title(9, 'Menu réel : boutons + aperçu + citation + chaîne'),
-            footer: 'NEXO-JARVIS XMD',
             buttons: [
                 { name: 'quick_reply', params: { display_text: 'Menu', id: '.menu' } },
                 { name: 'cta_url', params: { display_text: '📢 Voir la chaîne', url: channelLink(), merchant_url: channelLink() } }

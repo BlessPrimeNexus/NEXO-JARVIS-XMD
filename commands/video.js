@@ -62,7 +62,7 @@ async function getOkatsuVideoByUrl(youtubeUrl) {
 }
 
 // yt-dlp d'abord (client tv, autres clients, cookies si fournis) ; une source en échec répété est mise de côté (downloadHealth).
-async function fetchVideoWithYtdlp(videoUrl) {
+async function fetchVideoWithYtdlp(videoUrl, { height = 480, onTry } = {}) {
     const ytdlp = require('../lib/ytdlp');
     const health = require('../lib/downloadHealth');
     for (const client of ytdlp.clientsFor(Boolean(ytdlp.cookiesPath()))) {
@@ -70,7 +70,8 @@ async function fetchVideoWithYtdlp(videoUrl) {
         if (!health.usable(name)) continue;
         const started = Date.now();
         try {
-            const result = await ytdlp.downloadMedia(videoUrl, { kind: 'video', client, timeout: 110000 });
+            if (onTry) onTry(name);
+            const result = await ytdlp.downloadMedia(videoUrl, { kind: 'video', client, timeout: 110000, height });
             health.ok(name, Date.now() - started);
             return result;
         } catch (error) {
@@ -81,126 +82,42 @@ async function fetchVideoWithYtdlp(videoUrl) {
     return null;
 }
 
-async function videoCommand(sock, chatId, message) {
-    try {
-        const searchQuery = commandInput(message);
-        
-        
-        if (!searchQuery) {
-            await sock.sendMessage(chatId, { text: 'Quelle vidéo souhaitez-vous télécharger, Monsieur ?' }, { quoted: message });
-            return;
-        }
+/**
+ * Télécharge une vidéo YouTube à la qualité demandée.
+ * Retourne { buffer, title } (yt-dlp) ou { url, title } (API de secours, qualité fixe) ; lève une erreur si tout échoue.
+ */
+async function fetchVideo(videoUrl, { height = 480, onTry } = {}) {
+    const local = await fetchVideoWithYtdlp(videoUrl, { height, onTry });
+    if (local) return { buffer: local.buffer, title: local.title };
 
-        // Determine if input is a YouTube link
-        let videoUrl = '';
-        let videoTitle = '';
-        let videoThumbnail = '';
-        if (isHttpUrl(searchQuery)) {
-            videoUrl = searchQuery;
-        } else {
-            // Search YouTube for the video
-            const { videos } = await yts(searchQuery);
-            if (!videos || videos.length === 0) {
-                await sock.sendMessage(chatId, { text: '❌ Aucune vidéo trouvée, Monsieur.' }, { quoted: message });
-                return;
-            }
-            videoUrl = videos[0].url;
-            videoTitle = videos[0].title;
-            videoThumbnail = videos[0].thumbnail;
-        }
-
-        // Send thumbnail immediately
+    const apiMethods = [
+        { name: 'EliteProTech', method: () => getEliteProTechVideoByUrl(videoUrl) },
+        { name: 'Yupra', method: () => getYupraVideoByUrl(videoUrl) },
+        { name: 'Okatsu', method: () => getOkatsuVideoByUrl(videoUrl) }
+    ];
+    for (const apiMethod of apiMethods) {
         try {
-            const ytId = (videoUrl.match(/(?:youtu\.be\/|v=)([a-zA-Z0-9_-]{11})/) || [])[1];
-            const thumb = videoThumbnail || (ytId ? `https://i.ytimg.com/vi/${ytId}/sddefault.jpg` : undefined);
-            const captionTitle = videoTitle || searchQuery;
-            await sock.sendMessage(chatId, {
-                text: `Téléchargement lancé. Je vous informerai une fois l'opération terminée.\n\n🎬 *${captionTitle}*`
-            }, { quoted: message });
-        } catch (e) { console.error('[VIDEO] thumb error:', e?.message || e); }
-        
-
-        // Validate YouTube URL
-        let urls = videoUrl.match(/(?:https?:\/\/)?(?:youtu\.be\/|(?:www\.|m\.)?youtube\.com\/(?:watch\?v=|v\/|embed\/|shorts\/|playlist\?list=)?)([a-zA-Z0-9_-]{11})/gi);
-        if (!urls) {
-            await sock.sendMessage(chatId, { text: 'Ce lien YouTube n\'est pas valide, Monsieur.' }, { quoted: message });
-            return;
+            if (onTry) onTry(apiMethod.name);
+            const data = await apiMethod.method();
+            const link = data.download || data.dl || data.url;
+            if (link) return { url: link, title: data.title };
+        } catch (apiErr) {
+            console.log(`${apiMethod.name} API failed:`, apiErr.message);
         }
-
-        const local = await fetchVideoWithYtdlp(videoUrl);
-        if (local) {
-            await sock.sendMessage(chatId, {
-                video: local.buffer,
-                mimetype: 'video/mp4',
-                fileName: `${safeFileName(local.title || videoTitle, 'video')}.mp4`,
-                caption: `*${local.title || videoTitle || 'Vidéo'}*\n\n> *_Téléchargé par NEXO-JARVIS XMD_*`
-            }, { quoted: message });
-            return;
-        }
-
-        // Repli : API gratuites (EliteProTech -> Yupra -> Okatsu)
-        let videoData;
-        let downloadSuccess = false;
-        
-        // List of API methods to try
-        const apiMethods = [
-            { name: 'EliteProTech', method: () => getEliteProTechVideoByUrl(videoUrl) },
-            { name: 'Yupra', method: () => getYupraVideoByUrl(videoUrl) },
-            { name: 'Okatsu', method: () => getOkatsuVideoByUrl(videoUrl) }
-        ];
-        
-        // Try each API until we successfully get video data
-        for (const apiMethod of apiMethods) {
-            try {
-                videoData = await apiMethod.method();
-                const videoUrl_check = videoData.download || videoData.dl || videoData.url;
-                
-                if (!videoUrl_check) {
-                    console.log(`${apiMethod.name} returned no download URL, trying next API...`);
-                    continue; // Try next API
-                }
-                
-                downloadSuccess = true;
-                break; // Success! Exit the loop
-            } catch (apiErr) {
-                // API call failed, try next API
-                console.log(`${apiMethod.name} API failed:`, apiErr.message);
-                continue;
-            }
-        }
-        
-        // If all APIs failed, throw error
-        if (!downloadSuccess || !videoData) {
-            throw new Error('Toutes les sources de téléchargement ont échoué. Ce contenu est peut-être indisponible ou bloqué dans votre région.');
-        }
-
-        // Send video directly using the download URL
-        await sock.sendMessage(chatId, {
-            video: { url: videoData.download || videoData.dl || videoData.url },
-            mimetype: 'video/mp4',
-            fileName: `${safeFileName(videoData.title || videoTitle, 'video')}.mp4`,
-            caption: `*${videoData.title || videoTitle || 'Video'}*\n\n> *_Téléchargé par NEXO-JARVIS XMD_*`
-        }, { quoted: message });
-        
-    } catch (error) {
-        console.error('[VIDEO] Command Error:', error?.message || error);
-        
-        // Provide more specific error messages
-        let errorMessage = '❌ Le téléchargement de la vidéo a échoué, Monsieur.';
-        if (error.message && error.message.includes('blocked')) {
-            errorMessage = '❌ Téléchargement bloqué. Ce contenu est peut-être indisponible dans votre région ou soumis à une restriction légale.';
-        } else if (error.response?.status === 451 || error.status === 451) {
-            errorMessage = '❌ Contenu indisponible (451) — probablement une restriction légale ou un blocage régional.';
-        } else if (error.message && error.message.includes('All download sources failed')) {
-            errorMessage = '❌ Toutes les sources de téléchargement ont échoué. Ce contenu est peut-être indisponible ou bloqué.';
-        } else if (error.message) {
-            errorMessage = '❌ Le téléchargement a échoué : ' + error.message;
-        }
-        
-        await sock.sendMessage(chatId, { 
-            text: errorMessage 
-        }, { quoted: message });
     }
+    throw new Error('Toutes les sources de téléchargement ont échoué. Ce contenu est peut-être indisponible ou bloqué.');
 }
 
-module.exports = videoCommand; 
+/* .video / .ytmp4 : aperçu (miniature, titre, chaîne, durée) + boutons de qualité ; téléchargement dans commands/ytdl.js */
+async function videoCommand(sock, chatId, message) {
+    const searchQuery = commandInput(message);
+    if (!searchQuery) {
+        await sock.sendMessage(chatId, { text: 'Quelle vidéo souhaitez-vous télécharger ?\nExemple : *.video Imagine Dragons Believer*' }, { quoted: message });
+        return;
+    }
+    return require('./ytdl').sendPreview(sock, chatId, message, { query: searchQuery, mode: 'video' });
+}
+
+module.exports = videoCommand;
+module.exports.fetchVideo = fetchVideo;
+

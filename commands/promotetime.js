@@ -77,8 +77,7 @@ async function promoteTimeCommand(sock, chatId, senderId, message) {
                 `┃⌬┃ ✅ Promotion effectuée, Monsieur.\n` +
                 `┃⌬┃ ⏳ Rétrogradation automatique dans\n` +
                 `┃⌬┃    *${durationMin} min*.\n` +
-                `╰━━━━━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗`,
+                `╰━━━━━━━━━━━━━━━━❍\n`,
             mentions: [mentionedJid],
             ...channelInfo
         }, { quoted: message });

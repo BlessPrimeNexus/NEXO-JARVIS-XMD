@@ -86,8 +86,7 @@ async function kickTimeCommand(sock, chatId, senderId, message) {
                 `┃⌬┃ ✅ Utilisateur expulsé. Mission accomplie.\n` +
                 `┃⌬┃ ⏳ Réintégration automatique dans\n` +
                 `┃⌬┃    *${durationMin} min*.\n` +
-                `╰━━━━━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗`,
+                `╰━━━━━━━━━━━━━━━━❍\n`,
             mentions: [mentionedJid],
             ...channelInfo
         }, { quoted: message });

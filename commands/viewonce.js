@@ -38,8 +38,7 @@ async function vvCommand(sock, chatId, message, sendToPv = false) {
                 `┃⌬╭━━━━━━━━━━━━━≽\n` +
                 `┃⌬┃ ❌ Réponds à un média\n` +
                 `┃⌬┃ vue-unique (image/vidéo).\n` +
-                `╰━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+                `╰━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
         return;
@@ -56,8 +55,7 @@ async function vvCommand(sock, chatId, message, sendToPv = false) {
             `╰━━━━━━━━━━━━❍\n` +
             `┃⌬┃ 👤 De : @${senderNum}\n` +
             `┃⌬┃ 💬 Groupe : ${location}\n` +
-            `╰━━━━━━━━━━━━❍\n` +
-            `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`;
+            `╰━━━━━━━━━━━━❍\n`;
 
         if (quotedImage) {
             const stream = await downloadContentFromMessage(quotedImage, 'image');

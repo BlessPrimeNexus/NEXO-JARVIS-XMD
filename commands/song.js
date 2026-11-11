@@ -175,11 +175,12 @@ function checkAudio(buffer) {
     if (buffer.length > MAX_AUDIO_BYTES) throw new Error('fichier trop volumineux');
 }
 
-async function fetchChain(youtubeUrl, query = '') {
+async function fetchChain(youtubeUrl, query = '', hooks = {}) {
     for (const step of buildSteps(youtubeUrl, query)) {
         if (!health.usable(step.name)) { console.log(`[song] ${step.name} : mise de côté (échecs répétés)`); continue; }
         const started = Date.now();
         try {
+            if (hooks.onTry) hooks.onTry(step.name);
             const result = await step.run();
             checkAudio(result.buffer);
             health.ok(step.name, Date.now() - started);
@@ -264,77 +265,21 @@ function cleanTempFiles() {
     } catch { /* ignoré */ }
 }
 
-/* ─── Commande ─────────────────────────────────────────────── */
+/* ─── Commande ─────────────────────────────────────────────── *
+ * .song / .play / .mp3 / .ytmp3 : trouve la musique, affiche son APERÇU (miniature YouTube, titre, chaîne, durée)
+ * avec des boutons pour choisir le format (audio, document, vidéo 360p/480p/720p).
+ * Le téléchargement (barre de progression, suppression du message d'attente) est dans commands/ytdl.js.
+ */
 
 async function songCommand(sock, chatId, message) {
-    try {
-        const query = commandInput(message);
-        if (!query) {
-            await sock.sendMessage(chatId, {
-                text: 'Précisez le titre ou le lien YouTube, Monsieur.\nExemple : *.song Imagine Dragons Believer*'
-            }, { quoted: message });
-            return;
-        }
-
-        let video;
-        if (isHttpUrl(query) && YT_HOST.test(query)) {
-            video = { url: query };
-        } else {
-            const search = await yts(query);
-            if (!search || !search.videos || !search.videos.length) {
-                await sock.sendMessage(chatId, {
-                    text: `Aucun résultat pour « ${query} », Monsieur. Souhaitez-vous reformuler la requête ?`
-                }, { quoted: message });
-                return;
-            }
-            video = search.videos[0];
-        }
-
-        const label = video.title || query;
+    const query = commandInput(message);
+    if (!query) {
         await sock.sendMessage(chatId, {
-            text: `Téléchargement lancé. Je vous informerai une fois l'opération terminée.\n\n🎵 *${label}*` +
-                  (video.timestamp ? `\n⏱ Durée : ${video.timestamp}` : '')
+            text: 'Précisez le titre ou le lien YouTube.\nExemple : *.song Imagine Dragons Believer*'
         }, { quoted: message });
-
-        const result = await fetchChain(video.url, label);
-        if (!result) {
-            throw new Error('ALL_SOURCES_FAILED');
-        }
-
-        const detected = detectFormat(result.buffer);
-        let finalBuffer = result.buffer;
-        let finalMime = detected.mime;
-        let finalExt = detected.ext;
-
-        if (detected.ext !== 'mp3') {
-            try {
-                const converted = await toAudio(result.buffer, detected.ext);
-                if (converted && converted.length) {
-                    finalBuffer = converted;
-                    finalMime = 'audio/mpeg';
-                    finalExt = 'mp3';
-                }
-            } catch (conversionError) {
-                // On envoie le fichier d'origine plutôt que d'échouer si ffmpeg est absent.
-                console.warn(`[song] conversion ignorée (${detected.ext}) : ${conversionError.message}`);
-            }
-        }
-
-        await sock.sendMessage(chatId, {
-            audio: finalBuffer,
-            mimetype: finalMime,
-            fileName: `${safeFileName(result.title || video.title, 'song')}.${finalExt}`,
-            ptt: false
-        }, { quoted: message });
-
-        cleanTempFiles();
-    } catch (error) {
-        console.error('[song] erreur :', error.message);
-        const text = error.message === 'ALL_SOURCES_FAILED'
-            ? 'Une anomalie a été détectée. Aucune source de téléchargement n\'a pu livrer ce titre, Monsieur. Je vous suggère de réessayer dans quelques instants, ou avec un autre titre.'
-            : 'Une anomalie a été détectée. L\'opération n\'a pas pu aboutir, Monsieur.';
-        await sock.sendMessage(chatId, { text }, { quoted: message });
+        return;
     }
+    return require('./ytdl').sendPreview(sock, chatId, message, { query, mode: 'audio' });
 }
 
 module.exports = songCommand;

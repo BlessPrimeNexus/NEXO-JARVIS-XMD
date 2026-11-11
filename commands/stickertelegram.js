@@ -77,7 +77,7 @@ async function addStickerMetadata(buffer, emoji) {
     const image = new webp.Image();
     await image.load(buffer);
     const metadata = {
-        'sticker-pack-id': `https://github.com/BlessPrimeNexusDev/NEXO-JARVIS-XMD`,
+        'sticker-pack-id': `https://github.com/BlessPrimeNexus/NEXO-JARVIS-XMD`,
         'sticker-pack-name': settings.packname || 'NEXO-JARVIS XMD',
         'sticker-pack-publisher': settings.author || settings.developer || 'NEXO-JARVIS',
         emojis: emoji ? [emoji] : ['🤖']

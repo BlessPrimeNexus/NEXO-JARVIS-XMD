@@ -49,8 +49,7 @@ async function antiPromoteCommand(sock, chatId, senderId, message, args) {
                 `┃⌬┃ ✅ Activé ! Tout membre\n` +
                 `┃⌬┃ promu sera auto-démis,\n` +
                 `┃⌬┃ même par un admin !\n` +
-                `╰━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+                `╰━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
     } else if (sub === 'off') {
@@ -61,8 +60,7 @@ async function antiPromoteCommand(sock, chatId, senderId, message, args) {
                 `╭━━━━⌜𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗⌟\n` +
                 `┃⌬┃ 🛡️ *ANTIPROMOTE*\n` +
                 `┃⌬┃ ❌ Désactivé.\n` +
-                `╰━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+                `╰━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
     } else {
@@ -78,8 +76,7 @@ async function antiPromoteCommand(sock, chatId, senderId, message, args) {
                 `┃⌬┃ Usage :\n` +
                 `┃⌬┃ .antipromote on  — activer\n` +
                 `┃⌬┃ .antipromote off — désactiver\n` +
-                `╰━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+                `╰━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
     }
@@ -106,8 +103,7 @@ async function handleAntiPromoteEvent(sock, groupId, participants) {
                 `\n` +
                 `┃⌬┃ 🔔 Ce membre a été démis\n` +
                 `┃⌬┃  automatiquement !\n` +
-                `╰━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+                `╰━━━━━━━━━━━━❍\n`,
             mentions: participants,
             ...channelInfo
         });

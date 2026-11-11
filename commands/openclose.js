@@ -20,8 +20,7 @@ async function openGroupCommand(sock, chatId, message) {
                 `┃⌬┃\n` +
                 `┃⌬┃ ✅ Le groupe est de nouveau *ouvert*. Les portes sont rouvertes.\n` +
                 `┃⌬┃ Tous les membres peuvent écrire. 💬\n` +
-                `╰━━━━━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗`,
+                `╰━━━━━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
     } catch (err) {
@@ -51,8 +50,7 @@ async function closeGroupCommand(sock, chatId, message) {
                 `┃⌬┃\n` +
                 `┃⌬┃ ✅ Groupe verrouillé. Silence radio pour les non-membres, Monsieur.\n` +
                 `┃⌬┃ Seuls les admins peuvent écrire. 🔐\n` +
-                `╰━━━━━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗`,
+                `╰━━━━━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
     } catch (err) {

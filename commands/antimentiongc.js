@@ -50,8 +50,7 @@ async function antiMentionGcCommand(sock, chatId, senderId, message, args) {
                 `┃⌬┃ ✅ Activé ! Les messages\n` +
                 `┃⌬┃ mentionnant le groupe\n` +
                 `┃⌬┃ seront supprimés auto.\n` +
-                `╰━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+                `╰━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
     } else if (sub === 'off') {
@@ -62,8 +61,7 @@ async function antiMentionGcCommand(sock, chatId, senderId, message, args) {
                 `╭━━━━⌜𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗⌟\n` +
                 `┃⌬┃ 📢 *ANTIMENTIONGC*\n` +
                 `┃⌬┃ ❌ Désactivé.\n` +
-                `╰━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+                `╰━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
     } else {
@@ -79,8 +77,7 @@ async function antiMentionGcCommand(sock, chatId, senderId, message, args) {
                 `┃⌬┃ Usage :\n` +
                 `┃⌬┃ .antimentiongc on  — activer\n` +
                 `┃⌬┃ .antimentiongc off — désactiver\n` +
-                `╰━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+                `╰━━━━━━━━━━━━❍\n`,
             ...channelInfo
         }, { quoted: message });
     }
@@ -160,8 +157,7 @@ async function handleAntiMentionGc(sock, chatId, message, senderId) {
                 `┃⌬┃ ❌ Il est interdit de\n` +
                 `┃⌬┃ mentionner le groupe !\n` +
                 `┃⌬┃ Votre message a été supprimé.\n` +
-                `╰━━━━━━━━━━━━❍\n` +
-                `\n> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`,
+                `╰━━━━━━━━━━━━❍\n`,
             mentions: [senderId],
             ...channelInfo
         });

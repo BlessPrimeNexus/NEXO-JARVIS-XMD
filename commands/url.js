@@ -124,28 +124,22 @@ async function urlCommand(sock, chatId, message) {
         try { new URL(url); } catch { throw new Error('Le lien généré est invalide.'); }
 
         const caption = [
-            'Media Uploaded Successfully',
-            '✅',
+            '✅ *Média envoyé*',
             '',
-            'Media Link:',
-            url,
-            '',
-            '💾 Size: ' + formatBytes(media.buffer.length),
-            '',
-            '│ POWERED BY NEXO-JARVIS©'
+            '🔗 ' + url,
+            '💾 Taille : ' + formatBytes(media.buffer.length)
         ].join('\n');
 
         try {
             await sendInteractiveMessage(sock, chatId, {
-                title: 'Media Link',
+                title: 'Lien du média',
                 body: caption,
-                footer: '│ POWERED BY NEXO-JARVIS©',
                 buttons: uploadButtons(url),
                 quoted: message
             });
         } catch (buttonError) {
-            // Never lose the generated URL if a client rejects native-flow.
-            console.warn('[URL] interactive buttons unavailable:', buttonError.message);
+            // Le lien généré n'est jamais perdu si un client refuse les boutons natifs.
+            console.warn('[URL] boutons indisponibles :', buttonError.message);
             await sock.sendMessage(chatId, { text: caption }, { quoted: message });
         }
     } catch (error) {

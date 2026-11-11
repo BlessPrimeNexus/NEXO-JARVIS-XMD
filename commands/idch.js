@@ -77,7 +77,6 @@ async function idchCommand(sock, chatId, message, argument = '') {
             await sendInteractiveMessage(sock, chatId, {
                 title: '',
                 body: card,
-                footer: 'Appuyez sur le bouton pour copier le JID',
                 buttons,
                 quoted: message
             });

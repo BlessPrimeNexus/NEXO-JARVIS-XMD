@@ -8,11 +8,11 @@
 
 <br/>
 
-<a href="https://github.com/BlessPrimeNexusDev/NEXO-JARVIS-XMD/stargazers">
-  <img src="https://img.shields.io/github/stars/BlessPrimeNexusDev/NEXO-JARVIS-XMD?style=for-the-badge&logo=github&color=7B2FBE&labelColor=0d1117" alt="Stars"/>
+<a href="https://github.com/BlessPrimeNexus/NEXO-JARVIS-XMD/stargazers">
+  <img src="https://img.shields.io/github/stars/BlessPrimeNexus/NEXO-JARVIS-XMD?style=for-the-badge&logo=github&color=7B2FBE&labelColor=0d1117" alt="Stars"/>
 </a>
-<a href="https://github.com/BlessPrimeNexusDev/NEXO-JARVIS-XMD/network/members">
-  <img src="https://img.shields.io/github/forks/BlessPrimeNexusDev/NEXO-JARVIS-XMD?style=for-the-badge&logo=github&color=00D4FF&labelColor=0d1117" alt="Forks"/>
+<a href="https://github.com/BlessPrimeNexus/NEXO-JARVIS-XMD/network/members">
+  <img src="https://img.shields.io/github/forks/BlessPrimeNexus/NEXO-JARVIS-XMD?style=for-the-badge&logo=github&color=00D4FF&labelColor=0d1117" alt="Forks"/>
 </a>
 <img src="https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=for-the-badge&logo=node.js&labelColor=0d1117"/>
 <img src="https://img.shields.io/badge/Render-Deploy-46E3B7?style=for-the-badge&logo=render&labelColor=0d1117"/>
@@ -27,7 +27,7 @@
 
 ## 🌐 Deploy on Render — 1 Click
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/BlessPrimeNexusDev/NEXO-JARVIS-XMD)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/BlessPrimeNexus/NEXO-JARVIS-XMD)
 
 </div>
 
@@ -54,7 +54,7 @@
 
 ### Step 1 — Fork the Repository
 ```
-https://github.com/BlessPrimeNexusDev/NEXO-JARVIS-XMD
+https://github.com/BlessPrimeNexus/NEXO-JARVIS-XMD
 ```
 Click **Fork** (top right) to copy the repo to your account.
 
@@ -82,7 +82,7 @@ Click **Fork** (top right) to copy the repo to your account.
 ### Step 3 — Get Your Pairing Link
 Your panel will be live at:
 ```
-https://nexo-jarvis-xmd.onrender.com
+https://nexo-jarvis-xmd-production.up.railway.app
 ```
 *(or the custom URL Render assigns you)*
 

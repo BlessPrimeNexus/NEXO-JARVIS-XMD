@@ -138,6 +138,8 @@ const spotifyCommand = require('./commands/spotify');
 const playCommand = require('./commands/play');
 const tiktokCommand = require('./commands/tiktok');
 const songCommand = require('./commands/song');
+const ytdlCommand = require('./commands/ytdl');
+const { withProgress } = require('./lib/withProgress');
 const aiCommand = require('./commands/ai');
 const urlCommand = require('./commands/url');
 const { handleTranslateCommand } = require('./commands/translate');
@@ -1416,22 +1418,25 @@ function unwrapMessageContent(content) {
                 await setGroupPhoto(sock, chatId, senderId, message);
                 break;
             case userMessage.startsWith('.instagram') || userMessage.startsWith('.insta') || (userMessage === '.ig' || userMessage.startsWith('.ig ')):
-                await instagramCommand(sock, chatId, message);
+                await withProgress(instagramCommand, { icon: '📸' })(sock, chatId, message);
                 break;
             case userMessage.startsWith('.igsc'):
-                await igsCommand(sock, chatId, message, true);
+                await withProgress(igsCommand, { icon: '📸' })(sock, chatId, message, true);
                 break;
             case userMessage.startsWith('.igs'):
-                await igsCommand(sock, chatId, message, false);
+                await withProgress(igsCommand, { icon: '📸' })(sock, chatId, message, false);
                 break;
             case userMessage.startsWith('.fb') || userMessage.startsWith('.facebook'):
-                await facebookCommand(sock, chatId, message);
+                await withProgress(facebookCommand, { icon: '🎬' })(sock, chatId, message);
                 break;
             case userMessage.startsWith('.music'):
                 await playCommand(sock, chatId, message);
                 break;
             case userMessage.startsWith('.spotify'):
                 await spotifyCommand(sock, chatId, message);
+                break;
+            case userMessage.startsWith('.ytdl '):
+                await ytdlCommand(sock, chatId, message);
                 break;
             case userMessage.startsWith('.play') || userMessage.startsWith('.mp3') || userMessage.startsWith('.ytmp3') || userMessage.startsWith('.song'):
                 await songCommand(sock, chatId, message);
@@ -1440,7 +1445,7 @@ function unwrapMessageContent(content) {
                 await videoCommand(sock, chatId, message);
                 break;
             case userMessage.startsWith('.tiktok') || userMessage.startsWith('.tt'):
-                await tiktokCommand(sock, chatId, message);
+                await withProgress(tiktokCommand, { icon: '🎵' })(sock, chatId, message);
                 break;
             case userMessage.startsWith('.gpt') || userMessage.startsWith('.gemini') || userMessage === '.ai' || userMessage.startsWith('.ai '):
                 await aiCommand(sock, chatId, message);

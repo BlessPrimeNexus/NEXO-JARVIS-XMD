@@ -51,8 +51,7 @@ async function tagAllCommand(sock, chatId, senderId, message) {
             `┃⌬┃ 🔔 ᴀᴛᴛᴇɴᴛɪᴏɴ ᴛᴏᴜᴛ\n` +
             `┃⌬┃  ʟᴇ ᴍᴏɴᴅᴇ !\n` +
             `╰━━━━━━━━━━━━❍\n` +
-            `\n` +
-            `> © 2026 𝗡𝗘𝗫𝗢-𝗝𝗔𝗥𝗩𝗜𝗦 𝗫𝗠𝗗 • ᴄᴏɴçᴜ ᴘᴀʀ ✘🦠𝗕𝗟𝗘𝗦𝗦 | 𝗗𝗘𝗩🧬»𝟰𝟬𝟰. ✘`;
+            `\n`;
 
         await sock.sendMessage(chatId, {
             text:     tagMessage,
