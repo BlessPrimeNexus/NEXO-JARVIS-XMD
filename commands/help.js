@@ -96,7 +96,7 @@ const MENUS = [
   {
     key: 'owner', icon: '👑', label: 'PROPRIÉTAIRE', title: 'MENU PROPRIÉTAIRE',
     aliases: ['proprietaire', 'propriétaire', 'proprio', 'panel', 'console', 'settings', 'reglages', 'réglages', 'config'],
-    commands: ['mode', 'owners', 'autoread', 'autotyping', 'areact', 'fakeract', 'channelalert', 'setpp', 'panel', 'sessions', 'delsession', 'ram', 'gc', 'logs', 'disk', 'dltest', 'config', 'lang', 'restart', 'cleartmp', 'clearsession', 'update', 'stats', 'settings', 'prefix', 'setprefix', 'setcmd', 'mention', 'setmention', 'menustyle', 'quotecard', 'preview', 'imagemode', 'replystyle', 'viewtest', 'followchannel']
+    commands: ['mode', 'owners', 'autoread', 'autotyping', 'areact', 'fakeract', 'channelalert', 'setpp', 'panel', 'sessions', 'delsession', 'ram', 'gc', 'logs', 'disk', 'dltest', 'config', 'lang', 'restart', 'cleartmp', 'clearsession', 'update', 'stats', 'settings', 'prefix', 'setprefix', 'setcmd', 'mention', 'setmention', 'menustyle', 'quotecard', 'preview', 'imagemode', 'replystyle', 'theme', 'viewtest', 'followchannel']
   },
   {
     key: 'profile', icon: '👤', label: 'PROFIL', title: 'MENU PROFIL',
@@ -296,6 +296,7 @@ function overviewText(ctx) {
     ['🍵', 'Créateur', settings.menuOwner || settings.botOwner || 'NEXO-JARVIS'],
     ['🍔', 'Nom', botName],
     ['🍉', 'Version', settings.version || '2.0.0'],
+    ['🎨', 'Thème', (() => { try { return require('../lib/theme').current().name; } catch { return 'Jarvis'; } })()],
     ['🔣', 'Préfixe', `[${ctx.prefix}]`],
     ['📚', 'Commandes', commandCount()],
     ['🔌', 'Sessions', `${active} / ${total}`],

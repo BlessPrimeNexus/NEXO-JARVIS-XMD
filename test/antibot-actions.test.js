@@ -79,12 +79,97 @@ test('boutons d\'action : spec, refus sans boutons, liste en lignes', () => {
     assert.equal(button.params.sections[0].rows[0].id, '.antibot on');
 });
 
-test('wrapSock : le texte d\'une commande à options part avec le bouton Actions, une erreur reste un texte', async () => {
+test('wrapSock : une erreur garde la navigation seulement (pas les réglages)', async () => {
     const sent = [];
-    const sock = { sendMessage: async (jid, content) => { sent.push(content); return {}; }, relayMessage: async () => ({}) };
+    const sock = { user: { id: '1:1@s.whatsapp.net' }, waUploadToServer: async () => ({}), relayMessage: async (j, m) => { sent.push(JSON.stringify(m)); return 'ok'; }, sendMessage: async () => ({}) };
     const wrapped = actions.wrapSock(sock, { chatId: GROUP, message: msg('X'), command: 'antibot' });
     await wrapped.sendMessage(GROUP, { text: '❌ Accès réservé aux administrateurs' });
     assert.equal(sent.length, 1);
-    assert.equal(sent[0].text, '❌ Accès réservé aux administrateurs');
+    assert.match(sent[0], /Accès réservé/);
+    assert.ok(!/antibot on/.test(sent[0]), 'pas d\'options de réglage sur un refus');
+    assert.match(sent[0], /\.antimenu/);
     assert.equal(actions.specFor('ping'), null);
+});
+
+/* ── Boutons sur TOUTES les réponses ── */
+const interactiveSock = () => {
+    const out = []; let n = 0;
+    return { out, user: { id: '1:1@s.whatsapp.net' }, waUploadToServer: async () => ({}),
+        relayMessage: async (jid, m) => { out.push({ kind: 'relay', m }); return 'ok'; },
+        sendMessage: async (jid, content) => { out.push({ kind: 'send', content }); return { key: { id: `K${++n}` } }; } };
+};
+const rowIds = entry => JSON.stringify(entry.m).match(/\.[a-z0-9]+(?: [a-z0-9]+)*(?=\\")/gi) || [];
+
+test('toute commande a des actions : relancer + commandes de sa catégorie + menu de la catégorie + menu principal', () => {
+    const joke = actions.optionsFor('joke', '');
+    const cmds = joke.options.map(o => o.cmd);
+    assert.ok(cmds.includes('joke'), 'relancer');
+    assert.ok(cmds.includes('fact') && cmds.includes('quote'), 'commandes voisines (divertissement)');
+    assert.ok(cmds.includes('funmenu'), 'menu de la catégorie');
+    assert.equal(cmds.at(-1), 'menu');
+    const weather = actions.optionsFor('weather', 'Kinshasa');
+    assert.ok(weather.options.some(o => o.cmd === 'weather Kinshasa'), 'relance avec les mêmes arguments');
+    assert.ok(weather.options.some(o => o.cmd === 'forecast'));
+});
+
+test('commandes sensibles : jamais de bouton « Relancer » (kick, ban, gamble…)', () => {
+    for (const command of ['kick', 'ban', 'promote', 'gamble', 'transfer', 'restart', 'delete']) {
+        const options = actions.optionsFor(command, '@user 100').options;
+        assert.ok(!options.some(o => /Relancer/.test(o.label)), command);
+    }
+});
+
+test('toute commande du menu obtient au moins 2 actions (menu catégorie + menu principal)', () => {
+    const help = require('../commands/help');
+    for (const menu of help.MENUS) for (const command of menu.commands) {
+        const { options } = actions.optionsFor(command, '');
+        assert.ok(options.length >= 2, command);
+        assert.ok(options.every(o => !o.cmd.startsWith('.') && o.cmd.length < 190), command);
+    }
+});
+
+test('réponse texte d\'une commande SANS réglage (ex. .joke) : message à boutons natifs', async () => {
+    const sock = interactiveSock();
+    const wrapped = actions.wrapSock(sock, { chatId: GROUP, message: msg('X'), command: 'joke', args: '' });
+    await wrapped.sendMessage(GROUP, { text: 'Pourquoi les plongeurs plongent-ils en arrière ?' });
+    const flow = JSON.stringify(sock.out[0].m);
+    assert.equal(sock.out[0].kind, 'relay');
+    assert.match(flow, /Pourquoi les plongeurs/);
+    assert.match(flow, /\.fact/); assert.match(flow, /\.funmenu/); assert.match(flow, /\.menu/);
+});
+
+test('réponse photo / vidéo légendée : les boutons sont attachés au même message (en-tête média)', async () => {
+    const sock = interactiveSock();
+    const w1 = actions.wrapSock(sock, { chatId: GROUP, message: msg('X'), command: 'meme' });
+    await w1.sendMessage(GROUP, { image: Buffer.alloc(3000, 1), caption: 'Voici un mème' });
+    assert.match(JSON.stringify(sock.out[0].m), /Voici un mème/);
+    assert.match(JSON.stringify(sock.out[0].m), /single_select/);
+    const w2 = actions.wrapSock(sock, { chatId: GROUP, message: msg('X'), command: 'gif' });
+    await w2.sendMessage(GROUP, { video: Buffer.alloc(3000, 1), caption: 'Un clip' });
+    assert.equal(sock.out[1].kind, 'relay');
+});
+
+test('audio, sticker, document, réaction, suppression, modification : jamais transformés', async () => {
+    const sock = interactiveSock();
+    const w = actions.wrapSock(sock, { chatId: GROUP, message: msg('X'), command: 'joke' });
+    for (const content of [{ audio: Buffer.alloc(10) }, { sticker: Buffer.alloc(10) }, { document: Buffer.alloc(10), caption: 'doc' },
+        { react: { text: '👍', key: {} } }, { delete: { id: 'x' } }, { text: 'barre', edit: { id: 'y' } }, { text: 'progression', __edittext: true }]) {
+        await w.sendMessage(GROUP, content);
+    }
+    assert.ok(sock.out.every(o => o.kind === 'send'), 'tout est parti normalement');
+});
+
+test('une seule réponse par commande reçoit les boutons ; les menus et la progression en sont exclus', async () => {
+    const sock = interactiveSock();
+    const w = actions.wrapSock(sock, { chatId: GROUP, message: msg('X'), command: 'joke' });
+    await w.sendMessage(GROUP, { text: 'première' });
+    await w.sendMessage(GROUP, { text: 'seconde' });
+    assert.deepEqual(sock.out.map(o => o.kind), ['relay', 'send']);
+    assert.equal(actions.wrapSock(sock, { chatId: GROUP, message: msg('X'), command: 'ytdl' }), sock);
+    assert.equal(actions.wrapSock(sock, { chatId: GROUP, message: msg('X'), command: 'menu' }), sock);
+});
+
+test('une réponse d\'erreur garde seulement la navigation (pas les réglages de la commande)', () => {
+    const { options } = actions.optionsFor('antilink', '', { denial: true });
+    assert.deepEqual(options.map(o => o.cmd), ['antimenu', 'menu']);
 });

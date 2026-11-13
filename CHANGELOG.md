@@ -1,5 +1,12 @@
 # Changements — révision « créateur »
 
+## Barre de progression réparée, boutons sur toutes les réponses, thèmes
+
+- **Barre de progression** : elle restait à 0 % car, en « mode image », le premier message était converti en photo + légende (WhatsApp ne peut pas modifier une photo avec du texte). Le message de progression reste maintenant un vrai texte (drapeau `__edittext`), et ses modifications ont la même police et la même langue que le message d'origine.
+- **Boutons d'action sur TOUTES les réponses de commande** (`lib/actions.js`) : réglages de la commande quand elle en a (antilink, welcome, mode…), sinon actions de sa catégorie (relancer, commandes voisines, menu de la catégorie, menu principal). Fonctionne pour les réponses texte, photo et vidéo légendées. Les audios, stickers et documents ne peuvent pas porter de boutons dans WhatsApp. Les erreurs gardent seulement la navigation. Pas de « Relancer » sur les commandes sensibles (kick, ban, gamble…).
+- **Thèmes** (`.theme`, réservé au propriétaire de la session, réglage propre à chaque numéro) : Jarvis (défaut), Escanor, Sung Jin-woo, Spider-Man, Zero Two, Gojo, Sakura. Un thème change les images (dossier `themes/<nom>/`, 5 images originales par thème) et le style des réponses (cadres, puces, séparateurs). Tout dossier `themes/<nom>/` contenant des images devient un thème supplémentaire.
+
+
 ## Textes superflus supprimés, .repo refait, téléchargements avec aperçu, boutons et barre de progression
 
 - **Textes superflus retirés partout** : signatures « © 2026 … conçu par … », « ©Power by », « POWERED BY », « DOWNLOADED BY », « Téléchargé par… », pieds de page et phrases d'aide inutiles (commandes de groupe, sudo, tagall, viewonce, github, url, tiktok, instagram, facebook…). Un test empêche leur retour.

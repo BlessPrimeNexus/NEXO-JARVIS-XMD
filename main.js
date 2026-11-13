@@ -139,6 +139,7 @@ const playCommand = require('./commands/play');
 const tiktokCommand = require('./commands/tiktok');
 const songCommand = require('./commands/song');
 const ytdlCommand = require('./commands/ytdl');
+const themeCommand = require('./commands/theme');
 const { withProgress } = require('./lib/withProgress');
 const aiCommand = require('./commands/ai');
 const urlCommand = require('./commands/url');
@@ -534,7 +535,7 @@ function unwrapMessageContent(content) {
 
         // List of owner commands
         // Réservées au propriétaire (le contrôle central refuse tout autre expéditeur avant même d'exécuter la commande).
-        const STRICT_OWNER_ONLY = ['.dltest', '.panel', '.ram', '.gc', '.logs', '.disk', '.restart', '.config', '.owners', '.lang', '.sessions', '.session', '.delsession', '.sessionlist', '.listsessions', '.sudo', '.update', '.clearsession', '.settings', '.stats', '.viewtest', '.menustyle', '.imagemode', '.replystyle', '.preview', '.quotecard', '.mode', '.fakeract', '.channelalert'];
+        const STRICT_OWNER_ONLY = ['.dltest', '.panel', '.ram', '.gc', '.logs', '.disk', '.restart', '.config', '.owners', '.lang', '.sessions', '.session', '.delsession', '.sessionlist', '.listsessions', '.sudo', '.update', '.clearsession', '.settings', '.stats', '.viewtest', '.menustyle', '.theme', '.themes', '.imagemode', '.replystyle', '.preview', '.quotecard', '.mode', '.fakeract', '.channelalert'];
         const ownerCommands = ['.mode', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker', '.update', ...STRICT_OWNER_ONLY];
         const isOwnerCommand = ownerCommands.some(commandMatches);
         const isChannelAlertCommand = commandMatches('.fakeract') || commandMatches('.channelalert');
@@ -613,12 +614,15 @@ function unwrapMessageContent(content) {
         const _cmdKey = userMessage.split(/\s+/)[0];
         addCommandReaction(sock, message, _cmdKey).catch(() => {});
 
-        // Boutons d'action : les commandes à plusieurs options (anti-*, welcome, mode, chatbot…) répondent avec
-        // un message à boutons natifs « ⚡ Actions » (lib/actions.js). Les autres commandes ne sont pas touchées.
+        // Boutons d'action sur TOUTES les réponses de commande : réglages de la commande (antilink, welcome, mode…) ou,
+        // à défaut, actions de sa catégorie (relancer, commandes voisines, menu de la catégorie, menu principal).
         {
             const actionCommand = actionsLib.commandNameOf(userMessage);
-            if (actionsLib.specFor(actionCommand)) {
-                sock = actionsLib.wrapSock(sock, { chatId, message, command: actionCommand });
+            if (userMessage.startsWith('.') && actionCommand) {
+                sock = actionsLib.wrapSock(sock, {
+                    chatId, message, command: actionCommand,
+                    args: rawText.trim().split(/\s+/).slice(1).join(' ')
+                });
             }
         }
 
@@ -696,6 +700,7 @@ function unwrapMessageContent(content) {
             sock.sendPresenceUpdate('paused', chatId).catch(() => {});
             return;
         }
+
 
         // Commandes complémentaires (économie, santé, cyber, notes, diffusion, apk, religion…).
         if (customCommandName && extraCommands.has(customCommandName)) {
@@ -1100,6 +1105,9 @@ function unwrapMessageContent(content) {
                 break;
             case userMessage === '.viewtest':
                 await viewTestCommand(sock, chatId, message);
+                break;
+            case userMessage === '.theme' || userMessage === '.themes' || userMessage.startsWith('.theme '):
+                await themeCommand(sock, chatId, message, userMessage.startsWith('.theme ') ? rawText.trim().split(/\s+/).slice(1).join(' ') : '');
                 break;
             case userMessage === '.menustyle' || userMessage.startsWith('.menustyle '):
                 await displayCommand(sock, chatId, message, 'menuStyle', userMessage.slice(10).trim(), isOwnerOrSudoCheck);

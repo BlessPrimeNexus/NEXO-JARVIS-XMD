@@ -133,6 +133,23 @@ test('mode vraie image : la réponse part comme photo + légende encadrée', asy
     }
 });
 
+test('mode vraie image : un message « modifiable » (barre de progression) reste un VRAI texte, et sa modification a le même style', async () => {
+    displayFlags.override('imageReply', true);
+    try {
+        const { sock, sent } = makeSock();
+        await sock.sendMessage(GROUP, { text: 'Téléchargement', __edittext: true, __noframe: true });
+        const content = sent[0].content;
+        assert.equal(content.image, undefined, 'jamais converti en photo : WhatsApp ne peut pas modifier une photo avec du texte');
+        assert.equal(typeof content.text, 'string');
+        assert.equal(content.contextInfo.externalAdReply, undefined);
+        assert.equal(content.__edittext, undefined, 'le drapeau interne n\'est jamais envoyé');
+        const edited = await presentation.formatEditText('Téléchargement');
+        assert.equal(edited, content.text, 'même traduction et même police que le message d\'origine');
+    } finally {
+        displayFlags.override('imageReply', false);
+    }
+});
+
 test('mode vraie image : un texte trop long reste un texte (légende limitée)', async () => {
     displayFlags.override('imageReply', true);
     try {
